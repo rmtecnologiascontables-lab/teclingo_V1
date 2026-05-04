@@ -2,11 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/client",
   "installCommand": "npm install",
-  "framework": "vite",
-  "overrides": {
-    "dist/server/index.js": {
-      "type": "function",
-      "runtime": "nodejs20.x"
-    }
-  }
+  "framework": "vite"
 }
