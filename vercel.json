@@ -1,9 +1,6 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:client",
   "outputDirectory": "dist/client",
   "installCommand": "npm install",
-  "framework": "vite",
-  "rewrites": [
-    { "source": "/:path*", "destination": "/index.html" }
-  ]
+  "framework": "vite"
 }
