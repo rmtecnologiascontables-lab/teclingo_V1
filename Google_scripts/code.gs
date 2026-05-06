@@ -760,7 +760,7 @@ function sendSolicitudEmailToAdmin(data) {
         </tr>
       </table>
       <p style="margin-top: 20px; text-align: center;">
-        <a href="https://techlingo.vercel.app/login?role=director" style="background: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir al Panel de Superadmin</a>
+        <a href="https://teclingov1.rmtecnologiascontables.workers.dev/superadmin" style="background: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir al Panel de Superadmin</a>
       </p>
     </div>
   `;
@@ -808,7 +808,7 @@ function sendApprovalEmail(data) {
         <p style="font-size: 14px; margin: 5px 0; color: #666;">Guarda este código para tus registros.</p>
       </div>
       <p style="text-align: center; margin-top: 20px;">
-        <a href="https://techlingo.vercel.app/login" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a Iniciar Sesión</a>
+        <a href="https://teclingov1.rmtecnologiascontables.workers.dev/login" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a Iniciar Sesión</a>
       </p>
       <p style="margin-top: 20px; color: #666; font-size: 12px;">Equipo TecLingo - ITSP TecNM</p>
     </div>
