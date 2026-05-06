@@ -3,7 +3,7 @@
 
 const APPS_SCRIPT_URL =
   import.meta.env.VITE_APPS_SCRIPT_URL ||
-  "https://script.google.com/macros/s/AKfycbzMalcgobIMdMFXQFMMQooROkT4v2TKjB8zPA5CsY_XrAmxnQ6m-tz-mHhwc4D6u6DT/exec";
+  "https://script.google.com/macros/s/AKfycbzK6TTas0lsVzaDbMK3q6m57Hhzju5l0mQfc54d_fmG56Hol2jssvXniBrDgrUxXHTb/exec";
 
 export interface GSheetUser {
   id: string;
@@ -68,15 +68,16 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
   const response = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
     mode: "cors",
-    credentials: "same-origin",
     headers: {
-      "Content-Type": "text/plain;charset=utf-8",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ action, ...data }),
   });
 
   if (!response.ok) {
-    throw new Error(`GScript error: ${response.status}`);
+    const errorText = await response.text();
+    console.error("GS API Error:", response.status, errorText);
+    throw new Error(`GScript HTTP error: ${response.status} - ${errorText}`);
   }
 
   const text = await response.text();
@@ -84,11 +85,13 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
   try {
     result = JSON.parse(text);
   } catch (e) {
+    console.error("GS API Invalid JSON:", text.substring(0, 200));
     throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
   }
 
   if (!result.success) {
-    throw new Error(result.error || "Unknown error");
+    console.error("GS API Error:", result.error);
+    throw new Error(result.error || "Unknown GS API error");
   }
 
   return result.data;

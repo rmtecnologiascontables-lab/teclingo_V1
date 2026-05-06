@@ -74,10 +74,13 @@ function LoginPage() {
           navigate({ to: "/dashboard" });
         }
       } catch (err) {
+        console.error("Google auth error:", err);
         setError("Error al autenticar con Google");
       }
     },
     onError: () => setError("El login con Google fue cancelado o falló"),
+    ux_mode: 'popup',
+    redirect_uri: window.location.origin,
   });
 
   const guest = () => {
