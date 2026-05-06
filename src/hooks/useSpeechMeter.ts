@@ -72,18 +72,22 @@ export const useSpeechMeter = (targetText: string) => {
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.8;
-      analyserRef.current = source;
+      
       source.connect(analyser);
+      
+      const analyserNode = analyser;
+      analyserRef.current = analyserNode;
 
       isAnalyzerActiveRef.current = true;
 
       const updateAnalyzer = () => {
-        if (!analyserRef.current || !isAnalyzerActiveRef.current) return;
+        if (!analyserNode || !isAnalyzerActiveRef.current) return;
 
-        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-        analyserRef.current.getByteFrequencyData(dataArray);
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserNode.getByteFrequencyData(dataArray);
 
-        const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        const average = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
         setAudioLevel(average / 255);
 
         const frequencyValues = Array.from(dataArray).map(v => v / 255);
@@ -105,6 +109,7 @@ export const useSpeechMeter = (targetText: string) => {
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
     }
 
     if (streamRef.current) {
@@ -117,6 +122,7 @@ export const useSpeechMeter = (targetText: string) => {
       audioContextRef.current = null;
     }
 
+    analyserRef.current = null;
     setAudioLevel(0);
     setFrequencyData([]);
   }, []);
