@@ -21,19 +21,13 @@ const CONFIG = {
 };
 
 function doGet(e) {
-  return handleCors(ContentService.createTextOutput(JSON.stringify({ status: "TecLingo API is active!" }))
-    .setMimeType(ContentService.MimeType.JSON));
+  return ContentService.createTextOutput(JSON.stringify({ status: "TecLingo API is active!" }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doOptions(e) {
-  return handleCors(ContentService.createTextOutput("")).setMimeType(ContentService.MimeType.TEXT);
-}
-
-function handleCors(response) {
-  return response
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-    .setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  return ContentService.createTextOutput("")
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 function doPost(e) {
@@ -71,10 +65,10 @@ function doPost(e) {
       case "getUnreadCount": result = getUnreadCount(data.userId); break;
       default: throw new Error("Unknown action: " + action);
     }
-    return handleCors(ContentService.createTextOutput(JSON.stringify({ success: true, data: result })))
+    return ContentService.createTextOutput(JSON.stringify({ success: true, data: result }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-    return handleCors(ContentService.createTextOutput(JSON.stringify({ success: false, error: error.message })))
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
