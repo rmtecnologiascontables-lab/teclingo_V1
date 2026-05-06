@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { AccentGauge } from "@/components/AccentGauge";
 import { useDemoSession } from "@/lib/use-demo-auth";
 import {
   getUsers,
@@ -599,6 +600,21 @@ function TeacherPanel({ meId }: { meId: string }) {
           <Row label="Promedio grupal" value="8.4" />
         </div>
       </div>
+
+      {/* Material de Apoyo - Demo de Pronunciación */}
+      <div className="glass-strong rounded-3xl p-5 border border-white/10 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl -mr-16 -mt-16" />
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="w-5 h-5 text-indigo-400" />
+          <p className="text-xs font-bold uppercase tracking-widest text-foreground/90">
+            Material de Apoyo
+          </p>
+        </div>
+        <p className="text-xs text-foreground/50 mb-4">
+          Utiliza esta herramienta para demostrar la pronunciación correcta frente a la clase o grabar ejemplos.
+        </p>
+        <AccentGauge targetText="Welcome to TechLingo English course" label="" />
+      </div>
     </motion.div>
   );
 }
@@ -679,6 +695,17 @@ function StudentPanel({ meId, initialStats }: { meId: string; initialStats: any[
         <Row label="Lecciones completadas" value={completedCount} />
         <Row label="Conversaciones activas" value={myMsgs.length} />
         <Row label="Puntos de experiencia (XP)" value={xp.toLocaleString()} />
+      </div>
+
+      {/* Práctica de Pronunciación */}
+      <div className="glass-strong rounded-3xl p-5 border border-white/10 overflow-hidden relative">
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="w-5 h-5 text-indigo-400" />
+          <p className="text-xs font-bold uppercase tracking-widest text-foreground/90">
+            Práctica de Pronunciación
+          </p>
+        </div>
+        <AccentGauge targetText="Hello, how are you today" label="" compact />
       </div>
     </motion.div>
   );
