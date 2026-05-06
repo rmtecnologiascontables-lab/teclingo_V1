@@ -56,11 +56,32 @@ function LoginPage() {
   };
 
   const google = useGoogleLogin({
+    flow: 'auth-code',
     onSuccess: async (tokenResponse) => {
       console.log("DEBUG: Google Success! Token received.");
       try {
+        // For auth-code flow, we need to exchange the code for tokens
+        const response = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+            client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '',
+            code: tokenResponse.code,
+            grant_type: 'authorization_code',
+            redirect_uri: window.location.origin,
+          }),
+        });
+
+        const tokens = await response.json();
+        if (tokens.error) {
+          throw new Error(`OAuth error: ${tokens.error_description || tokens.error}`);
+        }
+
         const userInfo = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          headers: { Authorization: `Bearer ${tokens.access_token}` },
         }).then((res) => res.json());
 
         const res = await loginGoogleReal(userInfo.email);
@@ -78,9 +99,10 @@ function LoginPage() {
         setError("Error al autenticar con Google");
       }
     },
-    onError: () => setError("El login con Google fue cancelado o falló"),
-    ux_mode: 'popup',
-    redirect_uri: window.location.origin,
+    onError: (error) => {
+      console.error("Google login error:", error);
+      setError("El login con Google fue cancelado o falló");
+    },
   });
 
   const guest = () => {

@@ -116,7 +116,7 @@ function MessagesPage() {
             email: u.email,
             role: u.role as "student" | "teacher" | "director",
             avatar_url: u.avatar_url,
-            created_at: u.createdAt.toISOString(),
+            created_at: new Date(u.createdAt).toISOString(),
             app_code: u.app_code,
             institutionName: u.institutionName,
             group_id: u.group_id,
@@ -157,7 +157,7 @@ function MessagesPage() {
       fromId: m.fromId,
       toId: m.toId,
       text: m.text,
-      createdAt: new Date(m.createdAt).getTime(),
+      createdAt: m.createdAt ? new Date(m.createdAt).getTime() : Date.now(),
       readBy: m.readBy ? m.readBy.split(",") : [],
     }));
   }, [gsMessages]);
