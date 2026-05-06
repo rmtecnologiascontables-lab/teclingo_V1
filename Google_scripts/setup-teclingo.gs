@@ -7,12 +7,38 @@ function setupDatabase() {
   const spreadsheetId = "1Fv8mFOVpO2ScZP-xP-imU2Ms1UtoJiKC4_RMsDSkZYQ";
   const ss = SpreadsheetApp.openById(spreadsheetId);
   
+  // --- 0. 🦸 SUPERADMIN (si no existe) ---
+  const sheetUsers = ss.getSheetByName("Usuarios");
+  const superAdminEmail = "rmtecnologiascontables@gmail.com";
+  let superAdminExists = false;
+  if (sheetUsers) {
+    const userData = sheetUsers.getDataRange().getValues();
+    for (let i = 1; i < userData.length; i++) {
+      if (userData[i][2] === superAdminEmail) {
+        superAdminExists = true;
+        break;
+      }
+    }
+  }
+  if (!superAdminExists && sheetUsers) {
+    sheetUsers.appendRow([
+      "id-superadmin",
+      "RM SUPER ADMIN",
+      superAdminEmail,
+      "superadmin",
+      "TECNM-4194",
+      "RM TECNOLOGIAS CONTABLES",
+      "", "", "superadmin2024", "", "", new Date().toISOString(), "Presencial", "", "", new Date().toISOString(), "ACTIVO", "", ""
+    ]);
+    Logger.log("Superadmin creado: " + superAdminEmail);
+  }
+  
   // --- 1. 🗄️ MAESTRO DE USUARIOS ---
   setupSheet(ss, "Usuarios", [
     "id", "name", "email", "role", "app_code", 
     "institutionName", "carrera", "semestre", "numeroControl", 
     "password", "avatar_url", "fecha_ingreso", "modalidad", 
-    "phone", "domicilio", "created_at", "group_id"
+    "phone", "domicilio", "created_at", "status", "group_id", "last_category_id"
   ], "#cfe2f3");
 
   // --- 2. 📚 MAESTRO DE ITEMS ---
@@ -41,7 +67,7 @@ function setupDatabase() {
 
   // --- 4. 📈 ESTADISTICAS ---
   setupSheet(ss, "Estadisticas", [
-    "timestamp", "user_id", "action", "details"
+    "id", "user_id", "metric", "value", "date"
   ], "#f4cccc");
 
   // --- 5. 📂 GRUPOS ---
@@ -54,6 +80,12 @@ function setupDatabase() {
   setupSheet(ss, "Mensajes", [
     "id", "fromId", "toId", "text", "createdAt", "readBy"
   ], "#d4e5f7");
+
+  // --- 7. 📝 SOLICITUDES DE INSCRIPCIÓN ---
+  setupSheet(ss, "Solicitudes", [
+    "id", "codigo_inscripcion", "nombre", "email", "numero_control",
+    "institutionName", "app_code", "status", "created_at", "aprobado_por", "aprobado_at"
+  ], "#fef3c7");
 
   // --- 7. 🧹 LIMPIEZA DE HOJAS REDUNDANTES ---
   const redundantSheets = ["Alumnos", "Docentes", "Director"];

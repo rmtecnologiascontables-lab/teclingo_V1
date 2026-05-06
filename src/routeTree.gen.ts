@@ -10,7 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as SuperadminRouteImport } from './routes/superadmin'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as SolicitudesRouteImport } from './routes/solicitudes'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterSuccessRouteImport } from './routes/register-success'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -24,6 +27,7 @@ import { Route as LessonRouteImport } from './routes/lesson'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as AdminUsersRouteImport } from './routes/admin-users'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReadingReadingIdRouteImport } from './routes/reading.$readingId'
 
@@ -32,9 +36,24 @@ const WelcomeRoute = WelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperadminRoute = SuperadminRouteImport.update({
+  id: '/superadmin',
+  path: '/superadmin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolicitudesRoute = SolicitudesRouteImport.update({
+  id: '/solicitudes',
+  path: '/solicitudes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -102,6 +121,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin-users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -115,6 +139,7 @@ const ReadingReadingIdRoute = ReadingReadingIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/admin-users': typeof AdminUsersRoute
   '/ai-lab': typeof AiLabRoute
   '/dashboard': typeof DashboardRoute
@@ -128,12 +153,16 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/register-success': typeof RegisterSuccessRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
+  '/solicitudes': typeof SolicitudesRoute
   '/stats': typeof StatsRoute
+  '/superadmin': typeof SuperadminRoute
   '/welcome': typeof WelcomeRoute
   '/reading/$readingId': typeof ReadingReadingIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/admin-users': typeof AdminUsersRoute
   '/ai-lab': typeof AiLabRoute
   '/dashboard': typeof DashboardRoute
@@ -147,13 +176,17 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/register-success': typeof RegisterSuccessRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
+  '/solicitudes': typeof SolicitudesRoute
   '/stats': typeof StatsRoute
+  '/superadmin': typeof SuperadminRoute
   '/welcome': typeof WelcomeRoute
   '/reading/$readingId': typeof ReadingReadingIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/admin-users': typeof AdminUsersRoute
   '/ai-lab': typeof AiLabRoute
   '/dashboard': typeof DashboardRoute
@@ -167,7 +200,10 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/register-success': typeof RegisterSuccessRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
+  '/solicitudes': typeof SolicitudesRoute
   '/stats': typeof StatsRoute
+  '/superadmin': typeof SuperadminRoute
   '/welcome': typeof WelcomeRoute
   '/reading/$readingId': typeof ReadingReadingIdRoute
 }
@@ -175,6 +211,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/admin-users'
     | '/ai-lab'
     | '/dashboard'
@@ -188,12 +225,16 @@ export interface FileRouteTypes {
     | '/register'
     | '/register-success'
     | '/settings'
+    | '/signup'
+    | '/solicitudes'
     | '/stats'
+    | '/superadmin'
     | '/welcome'
     | '/reading/$readingId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/admin-users'
     | '/ai-lab'
     | '/dashboard'
@@ -207,12 +248,16 @@ export interface FileRouteTypes {
     | '/register'
     | '/register-success'
     | '/settings'
+    | '/signup'
+    | '/solicitudes'
     | '/stats'
+    | '/superadmin'
     | '/welcome'
     | '/reading/$readingId'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/admin-users'
     | '/ai-lab'
     | '/dashboard'
@@ -226,13 +271,17 @@ export interface FileRouteTypes {
     | '/register'
     | '/register-success'
     | '/settings'
+    | '/signup'
+    | '/solicitudes'
     | '/stats'
+    | '/superadmin'
     | '/welcome'
     | '/reading/$readingId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AiLabRoute: typeof AiLabRoute
   DashboardRoute: typeof DashboardRoute
@@ -246,7 +295,10 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   RegisterSuccessRoute: typeof RegisterSuccessRoute
   SettingsRoute: typeof SettingsRoute
+  SignupRoute: typeof SignupRoute
+  SolicitudesRoute: typeof SolicitudesRoute
   StatsRoute: typeof StatsRoute
+  SuperadminRoute: typeof SuperadminRoute
   WelcomeRoute: typeof WelcomeRoute
   ReadingReadingIdRoute: typeof ReadingReadingIdRoute
 }
@@ -260,11 +312,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/superadmin': {
+      id: '/superadmin'
+      path: '/superadmin'
+      fullPath: '/superadmin'
+      preLoaderRoute: typeof SuperadminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stats': {
       id: '/stats'
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/solicitudes': {
+      id: '/solicitudes'
+      path: '/solicitudes'
+      fullPath: '/solicitudes'
+      preLoaderRoute: typeof SolicitudesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -358,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -377,6 +457,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AdminUsersRoute: AdminUsersRoute,
   AiLabRoute: AiLabRoute,
   DashboardRoute: DashboardRoute,
@@ -390,7 +471,10 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   RegisterSuccessRoute: RegisterSuccessRoute,
   SettingsRoute: SettingsRoute,
+  SignupRoute: SignupRoute,
+  SolicitudesRoute: SolicitudesRoute,
   StatsRoute: StatsRoute,
+  SuperadminRoute: SuperadminRoute,
   WelcomeRoute: WelcomeRoute,
   ReadingReadingIdRoute: ReadingReadingIdRoute,
 }

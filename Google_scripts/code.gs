@@ -5,6 +5,7 @@
 
 const CONFIG = {
   SPREADSHEET_ID: "1Fv8mFOVpO2ScZP-xP-imU2Ms1UtoJiKC4_RMsDSkZYQ",
+  SUPERADMIN_EMAIL: "rmtecnologiascontables@gmail.com",
   FOLDERS: {
     AVATARS: "1lUEbFhXA9Mt_4TH8Xwiq-epRiqCFnrzp",
     IMAGES: "1gKFgMilPox4Kk5N0b3WowCqf6mDzAKSw",
@@ -17,6 +18,7 @@ const CONFIG = {
     INSTITUCIONES: "Instituciones",
     GRUPOS: "Grupos",
     MENSAJES: "Mensajes",
+    SOLICITUDES: "Solicitudes",
   },
 };
 
@@ -63,6 +65,10 @@ function doPost(e) {
       case "createMessage": result = createMessage(data.message); break;
       case "markMessageRead": result = markMessageRead(data.messageId, data.userId); break;
       case "getUnreadCount": result = getUnreadCount(data.userId); break;
+      case "createSolicitud": result = createSolicitud(data.solicitud); break;
+      case "getSolicitudes": result = getSolicitudes(data.filters); break;
+      case "approveSolicitud": result = approveSolicitud(data.id, data.aprobado_por); break;
+      case "rejectSolicitud": result = rejectSolicitud(data.id, data.aprobado_por); break;
       default: throw new Error("Unknown action: " + action);
     }
     return ContentService.createTextOutput(JSON.stringify({ success: true, data: result }))
@@ -577,4 +583,241 @@ function canMessage(fromRole, toRole, fromId, toId) {
   }
 
   return false;
+}
+
+// ============ SOLICITUDES DE INSCRIPCIÓN ============
+
+function createSolicitud(solicitud) {
+  const sheet = getSheet(CONFIG.SHEETS.SOLICITUDES);
+  
+  // Verificar si email ya tiene solicitud pendiente o aprobada
+  const existing = getSolicitudes({ email: solicitud.email });
+  const active = existing.filter(s => s.status === "pendiente" || s.status === "aprobado");
+  if (active.length > 0) {
+    throw new Error("Ya existe una solicitud activa para este email.");
+  }
+  
+  const id = "sol-" + Utilities.getUuid().substring(0, 8);
+  const codigo_inscripcion = "INS-" + new Date().getFullYear() + "-" + Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+  const created_at = new Date().toISOString();
+  
+  const row = [
+    id, 
+    codigo_inscripcion, 
+    solicitud.nombre, 
+    solicitud.email, 
+    solicitud.numero_control || "",
+    solicitud.institutionName || "ITSP (INSTITUTO TECNOLOGICO DE PANUCO)", 
+    solicitud.app_code || "TECNM-4194",
+    "pendiente",
+    created_at,
+    "",
+    ""
+  ];
+  
+  sheet.appendRow(row);
+  
+  // Enviar email al superadmin
+  sendSolicitudEmailToAdmin({
+    nombre: solicitud.nombre,
+    email: solicitud.email,
+    numero_control: solicitud.numero_control,
+    institutionName: solicitud.institutionName,
+    app_code: solicitud.app_code || "TECNM-4194",
+    codigo_inscripcion: codigo_inscripcion
+  });
+  
+  // Enviar email al estudiante confirmando solicitud recibida
+  sendSolicitudRecibidaEmail({
+    nombre: solicitud.nombre,
+    email: solicitud.email,
+    codigo_inscripcion: codigo_inscripcion
+  });
+  
+  return { id, codigo_inscripcion, ...solicitud, status: "pendiente", created_at };
+}
+
+function getSolicitudes(filters) {
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.SOLICITUDES);
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    let solicitudes = data.slice(1).filter(row => row[0]).map(row => {
+      const obj = {};
+      headers.forEach((h, j) => obj[h] = row[j]);
+      return obj;
+    });
+    
+    if (filters) {
+      if (filters.status) solicitudes = solicitudes.filter(s => s.status === filters.status);
+      if (filters.email) solicitudes = solicitudes.filter(s => s.email === filters.email);
+      if (filters.id) solicitudes = solicitudes.filter(s => s.id === filters.id);
+    }
+    
+    return solicitudes;
+  } catch (e) {
+    return [];
+  }
+}
+
+function approveSolicitud(id, aprobado_por) {
+  const sheet = getSheet(CONFIG.SHEETS.SOLICITUDES);
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      // Actualizar solicitud
+      sheet.getRange(i + 1, 8).setValue("aprobado"); // status
+      sheet.getRange(i + 1, 10).setValue(aprobado_por); // aprobado_por
+      sheet.getRange(i + 1, 11).setValue(new Date()); // aprobado_at
+      
+      // Obtener datos para crear usuario
+      const codigo_inscripcion = data[i][1]; // codigo_inscripcion
+      const nombre = data[i][2]; // nombre
+      const email = data[i][3]; // email
+      const numero_control = data[i][4]; // numero_control
+      const institutionName = data[i][5]; // institutionName
+      const app_code = data[i][6]; // app_code
+      
+      // Crear usuario automáticamente
+      const newUser = createUser({
+        name: nombre,
+        email: email,
+        role: "student",
+        app_code: app_code,
+        institutionName: institutionName,
+        numeroControl: numero_control,
+        password: codigo_inscripcion
+      });
+      
+      // Enviar email de bienvenida
+      sendWelcomeEmail({
+        name: nombre,
+        email: email,
+        role: "student",
+        app_code: app_code
+      });
+      
+      // Enviar email de aprobación
+      sendApprovalEmail({
+        nombre: nombre,
+        email: email,
+        codigo_inscripcion: codigo_inscripcion
+      });
+      
+      return { success: true, user: newUser };
+    }
+  }
+  throw new Error("Solicitud no encontrada");
+}
+
+function rejectSolicitud(id, aprobado_por) {
+  const sheet = getSheet(CONFIG.SHEETS.SOLICITUDES);
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.getRange(i + 1, 8).setValue("rechazado");
+      sheet.getRange(i + 1, 10).setValue(aprobado_por);
+      sheet.getRange(i + 1, 11).setValue(new Date());
+      return { success: true };
+    }
+  }
+  throw new Error("Solicitud no encontrada");
+}
+
+function sendSolicitudEmailToAdmin(data) {
+  const subject = "Nueva Solicitud de Inscripción - TecLingo";
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+      <h2 style="color: #0b5394; text-align: center;">📝 Nueva Solicitud de Inscripción</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Nombre:</strong></td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${data.nombre}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Email:</strong></td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${data.email}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Número de Control:</strong></td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${data.numero_control || "N/A"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Institución:</strong></td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${data.institutionName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>App Code:</strong></td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${data.app_code}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Código de Inscripción:</strong></td>
+          <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #0b5394;">${data.codigo_inscripcion}</td>
+        </tr>
+      </table>
+      <p style="margin-top: 20px; text-align: center;">
+        <a href="https://techlingo.vercel.app/login?role=director" style="background: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir al Panel de Superadmin</a>
+      </p>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: CONFIG.SUPERADMIN_EMAIL,
+    subject: subject,
+    htmlBody: htmlBody,
+    name: "TecLingo - Sistema de Inscripción"
+  });
+}
+
+function sendSolicitudRecibidaEmail(data) {
+  const subject = "📝 Tu solicitud de inscripción ha sido recibida - TecLingo";
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #f59e0b; border-radius: 10px;">
+      <h2 style="color: #f59e0b; text-align: center;">📝 Solicitud Recibida</h2>
+      <p style="font-size: 16px; color: #333;">Hola <strong>${data.nombre}</strong>,</p>
+      <p style="color: #333;">Tu solicitud de inscripción ha sido recibida exitosamente.</p>
+      <div style="background-color: #f3f6f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <p style="font-size: 14px; margin: 5px 0;"><strong>Número de Solicitud:</strong> <span style="color: #0b5394; font-weight: bold;">${data.codigo_inscripcion}</span></p>
+      </div>
+      <p style="color: #333;">Tu solicitud está siendo revisada. Recibirás un correo confirmando la aprobación una vez que sea procesada.</p>
+      <p style="margin-top: 20px; color: #666; font-size: 12px;">Equipo TecLingo - ITSP TecNM</p>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: data.email,
+    subject: subject,
+    htmlBody: htmlBody,
+    name: "TecLingo ITSP - TecNM"
+  });
+}
+
+function sendApprovalEmail(data) {
+  const subject = "✅ Tu inscripción ha sido aprobada - TecLingo";
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #10b981; border-radius: 10px;">
+      <h2 style="color: #10b981; text-align: center;">¡Felicidades! Tu inscripción ha sido aprobada 🎉</h2>
+      <p style="font-size: 16px; color: #333;">Hola <strong>${data.nombre}</strong>,</p>
+      <p style="color: #333;">Tu solicitud de inscripción ha sido aprobada. Ahora puedes acceder a la plataforma TecLingo.</p>
+      <div style="background-color: #f3f6f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <p style="font-size: 14px; margin: 5px 0;"><strong>Código de Inscripción:</strong> <span style="color: #0b5394; font-weight: bold;">${data.codigo_inscripcion}</span></p>
+        <p style="font-size: 14px; margin: 5px 0; color: #666;">Guarda este código para tus registros.</p>
+      </div>
+      <p style="text-align: center; margin-top: 20px;">
+        <a href="https://techlingo.vercel.app/login" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a Iniciar Sesión</a>
+      </p>
+      <p style="margin-top: 20px; color: #666; font-size: 12px;">Equipo TecLingo - ITSP TecNM</p>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: data.email,
+    subject: subject,
+    htmlBody: htmlBody,
+    name: "TecLingo ITSP - TecNM"
+  });
 }

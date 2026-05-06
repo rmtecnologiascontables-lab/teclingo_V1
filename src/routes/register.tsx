@@ -369,6 +369,16 @@ function RegisterPage() {
           </Link>
         </p>
 
+        <p className="text-center text-xs text-white/50 mt-3">
+          ¿Es tu primera vez?{" "}
+          <Link
+            to="/signup"
+            className="font-bold text-indigo-400 underline-offset-2 hover:underline"
+          >
+            Solicita tu inscripción
+          </Link>
+        </p>
+
         <Link to="/" className="text-center text-[11px] text-white/50 mt-6">
           ← Volver al inicio
         </Link>

@@ -250,7 +250,7 @@ export function AIChat({ initialLevel = "B1", compact = false }: AIChatProps) {
         {currentRepeatPhrase && (
           <div className="p-3 border-t border-zinc-800 bg-zinc-900/50">
             <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-2">Practica esta frase:</p>
-            <AccentGauge targetText={currentRepeatPhrase} label="" compact />
+            <AccentGauge targetText={currentRepeatPhrase} label="" compact variant="tutor" />
           </div>
         )}
       </div>
@@ -351,7 +351,7 @@ export function AIChat({ initialLevel = "B1", compact = false }: AIChatProps) {
       {currentRepeatPhrase && (
         <div className="border-t border-zinc-800 pt-4">
           <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-3">Frase para practicar:</p>
-          <AccentGauge targetText={currentRepeatPhrase} label="" />
+          <AccentGauge targetText={currentRepeatPhrase} label="" variant="tutor" />
         </div>
       )}
     </div>

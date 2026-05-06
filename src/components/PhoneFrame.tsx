@@ -26,7 +26,9 @@ export function PhoneFrame({ children, hideNav }: { children: ReactNode; hideNav
     location.pathname.includes("/register") ||
     location.pathname === "/" ||
     location.pathname.includes("/welcome") ||
-    location.pathname.includes("/register-success");
+    location.pathname.includes("/register-success") ||
+    location.pathname.includes("/superadmin") ||
+    location.pathname.includes("/solicitudes");
 
   const shouldHideNav = hideNav !== undefined ? hideNav : isAuthPage;
   const isDirector = session?.role === "director";

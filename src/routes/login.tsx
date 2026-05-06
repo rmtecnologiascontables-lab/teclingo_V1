@@ -36,7 +36,14 @@ function LoginPage() {
   useEffect(() => {
     ensureSeed();
     const s = getSession();
-    if (s) navigate({ to: "/dashboard" });
+    if (s) {
+      // Si es superadmin, redirigir a superadmin
+      if (s.email === "rmtecnologiascontables@gmail.com") {
+        navigate({ to: "/superadmin" });
+      } else {
+        navigate({ to: "/dashboard" });
+      }
+    }
   }, [navigate]);
 
   useEffect(() => {
@@ -52,37 +59,25 @@ function LoginPage() {
     setError("");
     const res = await loginEmail(email, pwd);
     if ("error" in res) setError(res.error);
-    else navigate({ to: "/dashboard" });
+    else {
+      // Si es superadmin, redirigir a superadmin
+      if (email === "rmtecnologiascontables@gmail.com") {
+        navigate({ to: "/superadmin" });
+      } else {
+        navigate({ to: "/dashboard" });
+      }
+    }
   };
 
   const google = useGoogleLogin({
-    flow: 'auth-code',
     onSuccess: async (tokenResponse) => {
       console.log("DEBUG: Google Success! Token received.");
       try {
-        // For auth-code flow, we need to exchange the code for tokens
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-            client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '',
-            code: tokenResponse.code,
-            grant_type: 'authorization_code',
-            redirect_uri: window.location.origin,
-          }),
-        });
-
-        const tokens = await response.json();
-        if (tokens.error) {
-          throw new Error(`OAuth error: ${tokens.error_description || tokens.error}`);
-        }
-
         const userInfo = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${tokens.access_token}` },
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         }).then((res) => res.json());
+
+        console.log("DEBUG: User info:", userInfo);
 
         const res = await loginGoogleReal(userInfo.email);
 
@@ -92,7 +87,8 @@ function LoginPage() {
         } else if ("error" in res) {
           setError(res.error);
         } else {
-          navigate({ to: "/dashboard" });
+          const target = userInfo.email === "rmtecnologiascontables@gmail.com" ? "/superadmin" : "/dashboard";
+          navigate({ to: target });
         }
       } catch (err) {
         console.error("Google auth error:", err);
@@ -190,10 +186,10 @@ function LoginPage() {
             ¿Aún no tienes cuenta institucional?
           </p>
           <Link
-            to="/register"
+            to="/signup"
             className="block w-full mt-3 py-3 text-center text-xs font-bold text-foreground glass rounded-2xl active:scale-95 transition-all"
           >
-            Solicitar Registro / Crear cuenta
+            Solicitar Inscripción
           </Link>
         </div>
 

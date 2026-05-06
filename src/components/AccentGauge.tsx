@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, RefreshCw, Volume2 } from "lucide-react";
+import { Mic, MicOff, RefreshCw, Volume2, Sparkles } from "lucide-react";
 import { useSpeechMeter, AccentType } from "@/hooks/useSpeechMeter";
 
 interface AccentGaugeProps {
@@ -8,6 +8,7 @@ interface AccentGaugeProps {
   phonetic?: string;
   label?: string;
   compact?: boolean;
+  variant?: "technical" | "tutor";
 }
 
 const phoneticMap: Record<string, string> = {
@@ -128,7 +129,7 @@ function Needle({ angle, isActive }: { angle: number; isActive: boolean }) {
   );
 }
 
-export function AccentGauge({ targetText, phonetic, label = "Evaluación de Pronunciación", compact = false }: AccentGaugeProps) {
+export function AccentGauge({ targetText, phonetic, label = "Evaluación de Pronunciación", compact = false, variant = "technical" }: AccentGaugeProps) {
   const { score, isListening, error, startEvaluation, resetScore, accent, setAccentType, audioLevel, frequencyData, analysis, transcript } = useSpeechMeter(targetText);
   const [showResults, setShowResults] = useState(false);
 
@@ -332,44 +333,92 @@ export function AccentGauge({ targetText, phonetic, label = "Evaluación de Pron
               exit={{ opacity: 0, y: -10 }}
               className="space-y-2"
             >
-              <div className="bg-zinc-900/60 rounded-lg p-2 border border-zinc-700/50">
-                <div className="flex justify-between items-center">
-                  <span className="text-[8px] uppercase text-zinc-500 font-bold">Similitud</span>
-                  <span className={`text-xs font-bold ${analysis.similarity >= 70 ? "text-green-400" : analysis.similarity >= 40 ? "text-yellow-400" : "text-red-400"}`}>
-                    {analysis.similarity}%
-                  </span>
-                </div>
-                <div className="h-1 bg-zinc-800 rounded-full mt-1 overflow-hidden">
-                  <motion.div 
-                    className="h-full rounded-full"
-                    style={{ background: analysis.similarity >= 70 ? "#10b981" : analysis.similarity >= 40 ? "#f59e0b" : "#ef4444" }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${analysis.similarity}%` }}
-                  />
-                </div>
-              </div>
+              {/* Technical Feedback (default) */}
+              {variant === "technical" && (
+                <>
+                  <div className="bg-zinc-900/60 rounded-lg p-2 border border-zinc-700/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[8px] uppercase text-zinc-500 font-bold">Similitud</span>
+                      <span className={`text-xs font-bold ${analysis.similarity >= 70 ? "text-green-400" : analysis.similarity >= 40 ? "text-yellow-400" : "text-red-400"}`}>
+                        {analysis.similarity}%
+                      </span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded-full mt-1 overflow-hidden">
+                      <motion.div 
+                        className="h-full rounded-full"
+                        style={{ background: analysis.similarity >= 70 ? "#10b981" : analysis.similarity >= 40 ? "#f59e0b" : "#ef4444" }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${analysis.similarity}%` }}
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-zinc-900/60 rounded-lg p-2 border border-zinc-700/50">
-                  <div className="flex justify-between">
-                    <span className="text-[8px] uppercase text-zinc-500 font-bold">Fonética</span>
-                    <span className="text-xs font-bold text-cyan-400">{analysis.phoneticAccuracy}%</span>
-                  </div>
-                  <div className="h-1 bg-zinc-800 rounded-full mt-1">
-                    <motion.div className="h-full bg-cyan-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${analysis.phoneticAccuracy}%` }} />
-                  </div>
-                </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-zinc-900/60 rounded-lg p-2 border border-zinc-700/50">
+                      <div className="flex justify-between">
+                        <span className="text-[8px] uppercase text-zinc-500 font-bold">Fonética</span>
+                        <span className="text-xs font-bold text-cyan-400">{analysis.phoneticAccuracy}%</span>
+                      </div>
+                      <div className="h-1 bg-zinc-800 rounded-full mt-1">
+                        <motion.div className="h-full bg-cyan-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${analysis.phoneticAccuracy}%` }} />
+                      </div>
+                    </div>
 
-                <div className="bg-zinc-900/60 rounded-lg p-2 border border-zinc-700/50">
-                  <div className="flex justify-between">
-                    <span className="text-[8px] uppercase text-zinc-500 font-bold">Ritmo</span>
-                    <span className="text-xs font-bold text-purple-400">{analysis.rhythmIntonation}%</span>
+                    <div className="bg-zinc-900/60 rounded-lg p-2 border border-zinc-700/50">
+                      <div className="flex justify-between">
+                        <span className="text-[8px] uppercase text-zinc-500 font-bold">Ritmo</span>
+                        <span className="text-xs font-bold text-purple-400">{analysis.rhythmIntonation}%</span>
+                      </div>
+                      <div className="h-1 bg-zinc-800 rounded-full mt-1">
+                        <motion.div className="h-full bg-purple-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${analysis.rhythmIntonation}%` }} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-1 bg-zinc-800 rounded-full mt-1">
-                    <motion.div className="h-full bg-purple-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${analysis.rhythmIntonation}%` }} />
+
+                  <div className="bg-indigo-950/40 border border-indigo-800/50 rounded-lg p-3">
+                    <p className="text-[8px] uppercase tracking-widest text-indigo-400 font-bold mb-2">Feedback Técnico</p>
+                    <p className="text-xs text-indigo-200 leading-relaxed">
+                      {analysis.similarity >= 80
+                        ? "Excelente pronunciación. Tu acento es muy claro y natural. Sigue practicando."
+                        : analysis.similarity >= 60
+                        ? "Buen trabajo. Hay áreas a mejorar:"
+                        : analysis.similarity >= 40
+                        ? "Necesitas más práctica. Intenta copiar el ritmo del audio:"
+                        : "Tu pronunciación necesita trabajo. Escucha y repite:"}
+                    </p>
+                    {analysis.phoneticAccuracy < 60 && (
+                      <p className="text-xs text-amber-300 mt-1">• Fonética: practica los sonidos específicos</p>
+                    )}
+                    {analysis.rhythmIntonation < 60 && (
+                      <p className="text-xs text-amber-300">• Ritmo: escucha las pausas naturales</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Tutor Feedback */}
+              {variant === "tutor" && (
+                <div className="bg-emerald-950/40 border border-emerald-800/50 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <Sparkles size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-[8px] uppercase tracking-widest text-emerald-400 font-bold mb-2">Tu Tutor Dice</p>
+                      <p className="text-xs text-emerald-200 leading-relaxed">
+                        {analysis.similarity >= 80
+                          ? "¡Muy bien! Tu pronunciación suena casi nativa. I'm proud of you! Sigue así y pronto sonarás como un speaker nativo."
+                          : analysis.similarity >= 60
+                          ? "Good job! Puedes mejorar. Remember: listen carefully and relax your mouth. Try saying it one more time with me."
+                          : analysis.similarity >= 40
+                          ? "Let's practice together. Don't worry, it's normal! Say it slowly. Listen to each word carefully."
+                          : "Don't worry, everybody starts here. Take a deep breath. Let's break it down word by word. I'll wait for you."}
+                      </p>
+                      {analysis.similarity >= 60 && analysis.similarity < 80 && (
+                        <p className="text-xs text-emerald-300 mt-2 italic">Tip: Try recording yourself and comparing with the original.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

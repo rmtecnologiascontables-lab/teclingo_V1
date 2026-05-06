@@ -89,23 +89,25 @@ function DashboardPage() {
         if (gapi.isConfigured()) {
           try {
             const users = await gapi.getUsers();
-            setGsUsers(users);
-            const gsUser = users.find((u: any) => u.email === session.email);
-            if (gsUser?.id) {
-            try {
-              const msgs = await gapi.getMessagesByUser(gsUser.id);
-              const unread = msgs.filter(
-                (m: any) =>
-                  m.toId === gsUser.id && (!m.readBy || !m.readBy.split(",").includes(gsUser.id)),
-              ).length;
-              setGsUnreadCount(unread);
-            } catch (e) {
-              console.error("GS messages error:", e);
-              setGsUnreadCount(0);
-            }
+            setGsUsers(Array.isArray(users) ? users : []);
+            if (Array.isArray(users) && users.length > 0) {
+              const gsUser = users.find((u: any) => u.email === session.email);
+              if (gsUser?.id) {
+                try {
+                  const msgs = await gapi.getMessagesByUser(gsUser.id);
+                  const unread = (Array.isArray(msgs) ? msgs : []).filter(
+                    (m: any) =>
+                      m.toId === gsUser.id && (!m.readBy || !m.readBy.split(",").includes(gsUser.id)),
+                  ).length;
+                  setGsUnreadCount(unread);
+                } catch (e) {
+                  console.error("GS messages error:", e);
+                  setGsUnreadCount(0);
+                }
+              }
             }
           } catch (e) {
-            console.error("GS messages error:", e);
+            console.error("GS users error:", e);
           }
         }
       }

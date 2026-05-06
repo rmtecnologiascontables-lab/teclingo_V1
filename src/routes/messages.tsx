@@ -90,16 +90,21 @@ function MessagesPage() {
     async function loadUsers() {
       try {
         const users = await gapi.getUsers();
+        console.log("[GS] getUsers response:", users);
         if (!isMounted) return;
 
-        setGsUsers(users);
+        const usersArray = Array.isArray(users) ? users : [];
+        console.log("[GS] users loaded:", usersArray.length);
+        setGsUsers(usersArray);
 
-        if (session) {
-          const gsUser = users.find((u) => u.email === session.email);
+        if (session && usersArray.length > 0) {
+          const gsUser = usersArray.find((u) => u.email === session.email);
+          console.log("[GS] current user:", gsUser);
           if (gsUser?.id) {
             const msgs = await gapi.getMessagesByUser(gsUser.id);
+            console.log("[GS] messages:", msgs);
             if (!isMounted) return;
-            setGsMessages(msgs);
+            setGsMessages(Array.isArray(msgs) ? msgs : []);
           }
         }
 
@@ -108,20 +113,6 @@ function MessagesPage() {
         console.error("GS load error:", e);
         if (isMounted) {
           setIsGsConfigured(false);
-          // Fallback to demo users if GS fails
-          const demoUsers = getUsers();
-          setGsUsers(demoUsers.map(u => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            role: u.role as "student" | "teacher" | "director",
-            avatar_url: u.avatar_url,
-            created_at: new Date(u.createdAt).toISOString(),
-            app_code: u.app_code,
-            institutionName: u.institutionName,
-            group_id: u.group_id,
-            numeroControl: (u as any).numeroControl,
-          })));
         }
       }
     }
@@ -136,23 +127,23 @@ function MessagesPage() {
   // Función para recargar mensajes
   const refreshGsMessages = async () => {
     if (!useGoogleSheets || !session) return;
-    const gsUser = gsUsers.find((u) => u.email === session.email);
+    const gsUser = Array.isArray(gsUsers) ? gsUsers.find((u) => u.email === session.email) : null;
     if (gsUser?.id) {
       const msgs = await gapi.getMessagesByUser(gsUser.id);
-      setGsMessages(msgs);
+      setGsMessages(Array.isArray(msgs) ? msgs : []);
     }
   };
 
   const currentUserGsId = useMemo(() => {
-    if (!gsUsers.length || !session) return null;
+    if (!Array.isArray(gsUsers) || !gsUsers.length || !session) return null;
     const gsUser = gsUsers.find((u) => u.email === session.email);
     return gsUser?.id || null;
   }, [gsUsers, session]);
 
   const users = allUsers;
   const messages = useMemo(() => {
-    // Solo usar mensajes de Google Sheets
-    return gsMessages.map((m) => ({
+    const msgs = Array.isArray(gsMessages) ? gsMessages : [];
+    return msgs.map((m) => ({
       id: m.id,
       fromId: m.fromId,
       toId: m.toId,

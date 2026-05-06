@@ -68,7 +68,7 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
   try {
     const response = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
-      mode: "no-cors",
+      mode: "cors",
       headers: {
         "Content-Type": "text/plain",
       },
@@ -79,11 +79,16 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
     try {
       const result = JSON.parse(text);
       if (result && typeof result === 'object') {
-        return result as T;
+        if (result.success === false) {
+          console.error("GS Error:", result.error);
+          throw new Error(result.error || "Unknown error");
+        }
+        return result.data as T;
       }
       return { status: "ok" } as T;
-    } catch {
-      return { status: "ok" } as T;
+    } catch (parseError) {
+      console.error("GS Parse Error:", parseError, "Response:", text);
+      throw new Error("Invalid response from server");
     }
   } catch (error) {
     console.error("GS API Error:", error);
@@ -226,6 +231,33 @@ export const gapi = {
 
   async getUnreadCount(userId: string): Promise<number> {
     return callGScript<number>("getUnreadCount", { userId });
+  },
+
+  // Solicitudes de inscripción
+  async createSolicitud(solicitud: {
+    nombre: string;
+    email: string;
+    numero_control?: string;
+    institutionName: string;
+    app_code: string;
+  }): Promise<{ id: string; codigo_inscripcion: string; status: string }> {
+    return callGScript<{ id: string; codigo_inscripcion: string; status: string }>("createSolicitud", { solicitud });
+  },
+
+  async getSolicitudes(filters?: {
+    status?: string;
+    email?: string;
+    id?: string;
+  }): Promise<any[]> {
+    return callGScript<any[]>("getSolicitudes", { filters });
+  },
+
+  async approveSolicitud(id: string, aprobado_por: string): Promise<{ success: boolean; user?: any }> {
+    return callGScript<{ success: boolean; user?: any }>("approveSolicitud", { id, aprobado_por });
+  },
+
+  async rejectSolicitud(id: string, aprobado_por: string): Promise<{ success: boolean }> {
+    return callGScript<{ success: boolean }>("rejectSolicitud", { id, aprobado_por });
   },
 
   isConfigured(): boolean {
