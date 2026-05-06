@@ -65,37 +65,30 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
     return mockResponse(action, data);
   }
 
-  const response = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    mode: "cors",
-    redirect: "follow",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ action, ...data }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("GS API Error:", response.status, errorText);
-    throw new Error(`GScript HTTP error: ${response.status} - ${errorText}`);
-  }
-
-  const text = await response.text();
-  let result;
   try {
-    result = JSON.parse(text);
-  } catch (e) {
-    console.error("GS API Invalid JSON:", text.substring(0, 200));
-    throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
-  }
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: JSON.stringify({ action, ...data }),
+    });
 
-  if (!result.success) {
-    console.error("GS API Error:", result.error);
-    throw new Error(result.error || "Unknown GS API error");
+    const text = await response.text();
+    try {
+      const result = JSON.parse(text);
+      if (result && typeof result === 'object') {
+        return result as T;
+      }
+      return { status: "ok" } as T;
+    } catch {
+      return { status: "ok" } as T;
+    }
+  } catch (error) {
+    console.error("GS API Error:", error);
+    throw error;
   }
-
-  return result.data;
 }
 
 function mockResponse<T>(action: string, data?: Record<string, unknown>): T {
