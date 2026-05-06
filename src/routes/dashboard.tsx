@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { AccentGauge } from "@/components/AccentGauge";
+import { AIChat } from "@/components/AIChat";
 import { useDemoSession } from "@/lib/use-demo-auth";
 import {
   getUsers,
@@ -706,6 +707,11 @@ function StudentPanel({ meId, initialStats }: { meId: string; initialStats: any[
           </p>
         </div>
         <AccentGauge targetText="Hello, how are you today" label="" compact />
+      </div>
+
+      {/* AI Chat Tutor */}
+      <div className="glass-strong rounded-3xl p-4 border border-white/10 overflow-hidden">
+        <AIChat initialLevel="B1" compact />
       </div>
     </motion.div>
   );
