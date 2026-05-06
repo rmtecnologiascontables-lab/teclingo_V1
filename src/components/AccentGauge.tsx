@@ -26,7 +26,7 @@ function getPhonetic(text: string): string {
   return phoneticMap[lower] || `/${text.toLowerCase().split("").map(c => c === " " ? " " : c).join("")}/`;
 }
 
-function FrequencyVisualizer({ active, audioLevel }: { active: boolean; audioLevel: number }) {
+function FrequencyVisualizer({ active, audioLevel, frequencyData }: { active: boolean; audioLevel: number; frequencyData?: number[] }) {
   const bars = 16;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -45,32 +45,40 @@ function FrequencyVisualizer({ active, audioLevel }: { active: boolean; audioLev
     const centerY = height / 2;
 
     for (let i = 0; i < bars; i++) {
-      const baseHeight = active ? 10 + Math.random() * audioLevel * 50 : 4;
-      const barHeight = active 
-        ? Math.max(4, baseHeight * (0.5 + Math.random() * 0.5)) 
-        : 4;
+      let barHeight: number;
+      
+      if (active && frequencyData && frequencyData.length > 0) {
+        const dataIndex = Math.floor((i / bars) * frequencyData.length);
+        const value = frequencyData[dataIndex] || 0;
+        barHeight = Math.max(4, value * 36 + 4);
+      } else {
+        const baseHeight = active ? 10 + audioLevel * 30 : 4;
+        barHeight = active 
+          ? Math.max(4, baseHeight * (0.6 + Math.random() * 0.4)) 
+          : 4;
+      }
 
       const x = i * (barWidth + 2);
       const y = centerY - barHeight / 2;
 
-      const intensity = audioLevel;
-      const r = Math.round(239 - intensity * 100);
-      const g = Math.round(68 + intensity * 100);
+      const intensity = active ? (audioLevel || 0.3) : 0.1;
+      const r = Math.round(239 - intensity * 140);
+      const g = Math.round(68 + intensity * 120);
       const b = Math.round(68);
       
       const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
       gradient.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
-      gradient.addColorStop(0.5, `rgb(${r - 40}, ${g + 80}, ${b + 80})`);
+      gradient.addColorStop(0.5, `rgb(${Math.max(0, r - 20)}, ${Math.min(255, g + 60)}, ${Math.min(255, b + 80)})`);
       gradient.addColorStop(1, `rgb(${r}, ${g}, ${b})`);
 
       ctx.fillStyle = gradient;
       ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
-      ctx.shadowBlur = active ? 8 : 0;
+      ctx.shadowBlur = active ? 10 : 0;
       ctx.beginPath();
       ctx.roundRect(x, y, barWidth, barHeight, 2);
       ctx.fill();
     }
-  }, [active, audioLevel]);
+  }, [active, audioLevel, frequencyData]);
 
   return (
     <canvas 
@@ -121,7 +129,7 @@ function Needle({ angle, isActive }: { angle: number; isActive: boolean }) {
 }
 
 export function AccentGauge({ targetText, phonetic, label = "Evaluación de Pronunciación", compact = false }: AccentGaugeProps) {
-  const { score, isListening, error, startEvaluation, resetScore, accent, setAccentType, audioLevel, analysis, transcript } = useSpeechMeter(targetText);
+  const { score, isListening, error, startEvaluation, resetScore, accent, setAccentType, audioLevel, frequencyData, analysis, transcript } = useSpeechMeter(targetText);
   const [showResults, setShowResults] = useState(false);
 
   const actualPhonetic = phonetic || getPhonetic(targetText);
@@ -304,7 +312,7 @@ export function AccentGauge({ targetText, phonetic, label = "Evaluación de Pron
         {/* Spectrum */}
         <div className="bg-zinc-900/60 rounded-lg p-3 border border-zinc-700/50">
           <p className="text-[8px] uppercase tracking-widest text-zinc-500 font-bold mb-2">Espectro</p>
-          <FrequencyVisualizer active={isListening} audioLevel={audioLevel} />
+          <FrequencyVisualizer active={isListening} audioLevel={audioLevel} frequencyData={frequencyData} />
         </div>
 
         {/* Transcript */}

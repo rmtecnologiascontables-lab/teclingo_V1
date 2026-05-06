@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 interface SpeechRecognitionEvent {
   results: {
@@ -19,9 +19,11 @@ type SpeechRecognitionType = {
   new (): SpeechRecognitionType;
   lang: string;
   continuous: boolean;
+  interimResults: boolean;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
+  onstart: (() => void) | null;
   start: () => void;
   stop: () => void;
 };
@@ -47,6 +49,7 @@ export const useSpeechMeter = (targetText: string) => {
   const [error, setError] = useState<string | null>(null);
   const [accent, setAccent] = useState<AccentType>("us");
   const [audioLevel, setAudioLevel] = useState(0);
+  const [frequencyData, setFrequencyData] = useState<number[]>([]);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [transcript, setTranscript] = useState("");
 
@@ -54,15 +57,68 @@ export const useSpeechMeter = (targetText: string) => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>(0);
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const isAnalyzerActiveRef = useRef(false);
 
-  const analyzeAudioLevel = useCallback(() => {
-    if (analyserRef.current) {
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-      setAudioLevel(average / 255);
+  const startAudioAnalyzer = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = source;
+      source.connect(analyser);
+
+      isAnalyzerActiveRef.current = true;
+
+      const updateAnalyzer = () => {
+        if (!analyserRef.current || !isAnalyzerActiveRef.current) return;
+
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        setAudioLevel(average / 255);
+
+        const frequencyValues = Array.from(dataArray).map(v => v / 255);
+        setFrequencyData(frequencyValues);
+
+        if (isAnalyzerActiveRef.current) {
+          animationFrameRef.current = requestAnimationFrame(updateAnalyzer);
+        }
+      };
+
+      updateAnalyzer();
+    } catch (e) {
+      console.warn("Microphone access denied:", e);
     }
-    animationFrameRef.current = requestAnimationFrame(analyzeAudioLevel);
+  }, []);
+
+  const stopAudioAnalyzer = useCallback(() => {
+    isAnalyzerActiveRef.current = false;
+    
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    setAudioLevel(0);
+    setFrequencyData([]);
   }, []);
 
   const startEvaluation = useCallback(() => {
@@ -78,7 +134,10 @@ export const useSpeechMeter = (targetText: string) => {
     setAnalysis(null);
     setTranscript("");
     setAudioLevel(0);
+    setFrequencyData([]);
     setIsListening(true);
+
+    startAudioAnalyzer();
 
     const lang = accent === "uk" ? "en-GB" : "en-US";
     const recognition = new SpeechRecognition();
@@ -86,16 +145,6 @@ export const useSpeechMeter = (targetText: string) => {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognitionRef.current = recognition;
-
-    try {
-      const audioContext = new AudioContext();
-      audioContextRef.current = audioContext;
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      analyserRef.current = analyser;
-    } catch (e) {
-      console.warn("Audio context not available:", e);
-    }
 
     const calculateAnalysis = (transcriptResult: string, confidenceScore: number): AnalysisResult => {
       const targetLower = targetText.toLowerCase().trim();
@@ -133,36 +182,25 @@ export const useSpeechMeter = (targetText: string) => {
       const analysisResult = calculateAnalysis(spoken, confidence);
       setAnalysis(analysisResult);
 
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      cancelAnimationFrame(animationFrameRef.current);
+      stopAudioAnalyzer();
       setIsListening(false);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       setError(`Error: ${event.error}`);
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      cancelAnimationFrame(animationFrameRef.current);
+      stopAudioAnalyzer();
       setIsListening(false);
     };
 
     recognition.onend = () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
+      if (isListening) {
+        stopAudioAnalyzer();
+        setIsListening(false);
       }
-      cancelAnimationFrame(animationFrameRef.current);
-      setIsListening(false);
     };
 
     recognition.start();
-    analyzeAudioLevel();
-  }, [targetText, accent, analyzeAudioLevel]);
+  }, [targetText, accent, startAudioAnalyzer, stopAudioAnalyzer]);
 
   const setAccentType = useCallback((newAccent: AccentType) => {
     setAccent(newAccent);
@@ -174,7 +212,14 @@ export const useSpeechMeter = (targetText: string) => {
     setAnalysis(null);
     setTranscript("");
     setAudioLevel(0);
+    setFrequencyData([]);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      stopAudioAnalyzer();
+    };
+  }, [stopAudioAnalyzer]);
 
   return { 
     score, 
@@ -185,6 +230,7 @@ export const useSpeechMeter = (targetText: string) => {
     accent,
     setAccentType,
     audioLevel,
+    frequencyData,
     analysis,
     transcript
   };
