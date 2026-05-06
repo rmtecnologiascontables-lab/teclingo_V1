@@ -1,0 +1,21 @@
+{
+  "name": "TecLingo",
+  "short_name": "TecLingo",
+  "description": "Plataforma de aprendizaje de inglés del ITSP - TecNM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b5394",
+  "icons": [
+    {
+      "src": "/teclingo-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/teclingo-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
