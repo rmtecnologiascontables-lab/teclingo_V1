@@ -3,7 +3,7 @@
 
 const APPS_SCRIPT_URL =
   import.meta.env.VITE_APPS_SCRIPT_URL ||
-  "https://script.google.com/macros/s/AKfycbzK6TTas0lsVzaDbMK3q6m57Hhzju5l0mQfc54d_fmG56Hol2jssvXniBrDgrUxXHTb/exec";
+  "https://script.google.com/macros/s/AKfycbzpkHAOsNlF2DfuSMVxDEuE6nAixndw-DhrqBpRlgng-alpGJcK0_N_w8cxgUJXFOqI/exec";
 
 export interface GSheetUser {
   id: string;
@@ -68,6 +68,7 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
   const response = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
     mode: "cors",
+    redirect: "follow",
     headers: {
       "Content-Type": "application/json",
     },
