@@ -30,7 +30,11 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+      },
       { title: "TecLingo" },
       {
         name: "description",
@@ -92,11 +96,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   // CONFIGURACIÓN MAESTRA: Este ID es el único válido para tu consola de Google
-  const MASTER_CLIENT_ID = "723379547370-7c5kca1q2oi8lr8kgdddscniskjdbrt6.apps.googleusercontent.com";
-  
+  const MASTER_CLIENT_ID =
+    "723379547370-7c5kca1q2oi8lr8kgdddscniskjdbrt6.apps.googleusercontent.com";
+
   // Leemos del entorno, pero si es el ID erróneo (948555...) o está vacío, el Maestro toma el control
   const envId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-  const clientId = (envId && !envId.startsWith("948555")) ? envId : MASTER_CLIENT_ID;
+  const clientId = envId && !envId.startsWith("948555") ? envId : MASTER_CLIENT_ID;
 
   // Inicializar Tema Global (Basado en localStorage)
   useEffect(() => {
@@ -117,7 +122,7 @@ function RootComponent() {
       console.error("Theme init error", e);
     }
   }, []);
-  
+
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <Outlet />

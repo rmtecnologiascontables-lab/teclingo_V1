@@ -71,11 +71,11 @@ function LessonPage() {
           const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
           await fetch(scriptUrl, {
             method: "POST",
-            body: JSON.stringify({ 
-              action: "updateUser", 
-              id: user.id, 
-              updates: { last_category_id: categoryId } 
-            })
+            body: JSON.stringify({
+              action: "updateUser",
+              id: user.id,
+              updates: { last_category_id: categoryId },
+            }),
           });
           updateUserData(user.id, { last_category_id: categoryId });
         } catch (e) {
@@ -104,15 +104,15 @@ function LessonPage() {
           const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
           await fetch(scriptUrl, {
             method: "POST",
-            body: JSON.stringify({ 
-              action: "saveStats", 
-              stats: { 
-                user_id: user.id, 
-                metric: "lesson_completed", 
+            body: JSON.stringify({
+              action: "saveStats",
+              stats: {
+                user_id: user.id,
+                metric: "lesson_completed",
                 value: `Category: ${categoryId}, Hearts: ${hearts}`,
-                date: new Date().toISOString()
-              } 
-            })
+                date: new Date().toISOString(),
+              },
+            }),
           });
         } catch (e) {
           console.error("Error saving stats", e);

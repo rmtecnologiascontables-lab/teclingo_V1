@@ -13,7 +13,7 @@ export async function generateQRDataURL(data: QRData): Promise<string> {
   const qrString = JSON.stringify({
     ...data,
     v: "1.0", // Versión del formato
-    origin: "TecLingo-ITSP"
+    origin: "TecLingo-ITSP",
   });
   return QRCode.toDataURL(qrString, {
     width: 320,
@@ -22,7 +22,7 @@ export async function generateQRDataURL(data: QRData): Promise<string> {
       dark: "#0f172a",
       light: "#ffffff",
     },
-    errorCorrectionLevel: 'H' // Alta recuperación de errores
+    errorCorrectionLevel: "H", // Alta recuperación de errores
   });
 }
 

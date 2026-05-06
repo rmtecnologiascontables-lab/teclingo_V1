@@ -14,13 +14,23 @@ const CONFIG = {
     USUARIOS: "Usuarios",
     ITEMS: "Items",
     ESTADISTICAS: "Estadisticas",
-    INSTITUCIONES: "Instituciones", // <--- NUEVO
+    INSTITUCIONES: "Instituciones",
+    GRUPOS: "Grupos",
+    MENSAJES: "Mensajes",
   },
 };
 
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({ status: "TecLingo API is active and running smoothly! 🚀" }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput("")
+    .setMimeType(ContentService.MimeType.TEXT)
+    .setHeader("Access-Control-Allow-Origin", "*")
+    .setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+    .setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
 function doPost(e) {
@@ -40,10 +50,22 @@ function doPost(e) {
       case "uploadFile": result = uploadFile(data); break;
       case "getStats": result = getStats(data.userId); break;
       case "saveStats": result = saveStats(data.stats); break;
-      case "getInstitution": result = getInstitution(data.app_code); break; // <--- NUEVO
-      case "updateInstitution": result = updateInstitution(data.app_code, data.updates); break; // <--- NUEVO
-      case "sendWelcomeEmail": result = sendWelcomeEmail(data); break; 
-      case "getFileBase64": result = getFileBase64(data.fileId); break; // <--- NUEVO PUENTE
+      case "getInstitution": result = getInstitution(data.app_code); break;
+      case "updateInstitution": result = updateInstitution(data.app_code, data.updates); break;
+      case "sendWelcomeEmail": result = sendWelcomeEmail(data); break;
+      case "getFileBase64": result = getFileBase64(data.fileId); break;
+      case "getGroups": result = getGroups(data.filters); break;
+      case "createGroup": result = createGroup(data.group); break;
+      case "updateGroup": result = updateGroup(data.id, data.updates); break;
+      case "deleteGroup": result = deleteGroup(data.id); break;
+      case "assignStudentToGroup": result = assignStudentToGroup(data.studentId, data.groupId); break;
+      case "getStudentsByGroup": result = getStudentsByGroup(data.groupId); break;
+      case "canMessage": result = canMessage(data.fromRole, data.toRole, data.fromId, data.toId); break;
+      case "getMessagesByUser": result = getMessagesByUser(data.userId); break;
+      case "getConversation": result = getConversation(data.userId1, data.userId2); break;
+      case "createMessage": result = createMessage(data.message); break;
+      case "markMessageRead": result = markMessageRead(data.messageId, data.userId); break;
+      case "getUnreadCount": result = getUnreadCount(data.userId); break;
       default: throw new Error("Unknown action: " + action);
     }
     return ContentService.createTextOutput(JSON.stringify({ success: true, data: result }))
@@ -317,11 +339,245 @@ function sendWelcomeEmail(userData) {
       <p>Mucho éxito,<br><strong>El Equipo de TecLingo - ITSP TecNM</strong></p>
     </div>
   `;
-  
+
   MailApp.sendEmail({
     to: email,
     subject: subject,
     htmlBody: htmlBody,
     name: "TecLingo ITSP - TecNM"
   });
+}
+
+// ============ GESTIÓN DE GRUPOS ============
+
+function getGroups(filters) {
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.GRUPOS);
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let groups = data.slice(1).filter(row => row[0]).map(row => {
+      const obj = {};
+      headers.forEach((h, j) => obj[h] = row[j]);
+      return obj;
+    });
+
+    if (filters) {
+      if (filters.modulo) groups = groups.filter(g => g.modulo == filters.modulo);
+      if (filters.teacher_id) groups = groups.filter(g => g.teacher_id === filters.teacher_id);
+      if (filters.director_id) groups = groups.filter(g => g.director_id === filters.director_id);
+      if (filters.anio_escolar) groups = groups.filter(g => g.anio_escolar === filters.anio_escolar);
+    }
+
+    return groups;
+  } catch (e) { return []; }
+}
+
+function createGroup(group) {
+  const sheet = getSheet(CONFIG.SHEETS.GRUPOS);
+  const existing = getGroups({ modulo: group.modulo, anio_escolar: group.anio_escolar });
+  const countInModulo = existing.filter(g => g.modulo == group.modulo).length + 1;
+
+  if (countInModulo > 8) {
+    throw new Error("Máximo 8 grupos por módulo alcanzado.");
+  }
+
+  const id = "grp-" + Utilities.getUuid().substring(0, 8);
+  const created_at = new Date().toISOString();
+  const name = group.name || `Grupo ${countInModulo} - Módulo ${group.modulo}`;
+
+  const row = [
+    id, name, group.modulo, group.teacher_id || "", group.director_id || "",
+    group.anio_escolar || "2025-2026", group.capacidad || 25,
+    group.horario || "", "ACTIVO", created_at
+  ];
+
+  sheet.appendRow(row);
+  return { id, ...group, name, created_at };
+}
+
+function updateGroup(id, updates) {
+  const sheet = getSheet(CONFIG.SHEETS.GRUPOS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      headers.forEach((h, j) => {
+        if (updates[h] !== undefined) {
+          sheet.getRange(i + 1, j + 1).setValue(updates[h]);
+        }
+      });
+      return { id, ...updates };
+    }
+  }
+  throw new Error("Grupo no encontrado");
+}
+
+function deleteGroup(id) {
+  const sheet = getSheet(CONFIG.SHEETS.GRUPOS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.deleteRow(i + 1);
+      return;
+    }
+  }
+  throw new Error("Grupo no encontrado");
+}
+
+function assignStudentToGroup(studentId, groupId) {
+  const studentSheet = getSheet(CONFIG.SHEETS.USUARIOS);
+  const data = studentSheet.getDataRange().getValues();
+  const headers = data[0];
+  const groupIdIdx = headers.indexOf("group_id");
+
+  if (groupIdIdx === -1) {
+    throw new Error("La columna group_id no existe en la hoja de Usuarios");
+  }
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === studentId) {
+      studentSheet.getRange(i + 1, groupIdIdx + 1).setValue(groupId);
+      return { studentId, groupId };
+    }
+  }
+  throw new Error("Estudiante no encontrado");
+}
+
+function getStudentsByGroup(groupId) {
+  const users = getUsers();
+  return users.filter(u => u.group_id === groupId && u.role === "student");
+}
+
+function getGroupsByStudent(studentId) {
+  const user = getUsers().find(u => u.id === studentId);
+  if (!user || !user.group_id) return [];
+  return getGroups({ teacher_id: user.group_id });
+}
+
+// ============ MENSAJERÍA ============
+
+function getMessagesByUser(userId) {
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.MENSAJES);
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const messages = data.slice(1).filter(row => row[0]).map(row => {
+      const obj = {};
+      headers.forEach((h, j) => obj[h] = row[j]);
+      return obj;
+    });
+
+    return messages.filter(m => m.fromId === userId || m.toId === userId);
+  } catch (e) { return []; }
+}
+
+function getConversation(userId1, userId2) {
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.MENSAJES);
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const messages = data.slice(1).filter(row => row[0]).map(row => {
+      const obj = {};
+      headers.forEach((h, j) => obj[h] = row[j]);
+      return obj;
+    });
+
+    return messages.filter(m =>
+      (m.fromId === userId1 && m.toId === userId2) ||
+      (m.fromId === userId2 && m.toId === userId1)
+    ).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  } catch (e) { return []; }
+}
+
+function createMessage(msg) {
+  const sheet = getSheet(CONFIG.SHEETS.MENSAJES);
+
+  // TODO: Implementar verificación de permisos cuando los IDs de sesión coincidan con Google Sheets
+  // Temporalmente permitimos todos los mensajes para pruebas
+  // const fromUser = getUsers().find(u => u.id === msg.fromId);
+  // const toUser = getUsers().find(u => u.id === msg.toId);
+  // if (!fromUser || !toUser) { throw new Error("Usuario no encontrado"); }
+  // const canSend = canMessage(fromUser.role, toUser.role, msg.fromId, msg.toId);
+  // if (!canSend) { throw new Error("No tienes permiso para enviar mensajes a este usuario"); }
+
+  const id = "msg-" + Utilities.getUuid().substring(0, 12);
+  const createdAt = new Date().toISOString();
+
+  const row = [
+    id, msg.fromId, msg.toId, msg.text, createdAt, msg.fromId // readBy
+  ];
+
+  sheet.appendRow(row);
+
+  return { id, ...msg, createdAt, readBy: [msg.fromId] };
+}
+
+function markMessageRead(messageId, userId) {
+  const sheet = getSheet(CONFIG.SHEETS.MENSAJES);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const readByIdx = headers.indexOf("readBy");
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === messageId) {
+      const currentReadBy = data[i][readByIdx] || "";
+      const readArr = currentReadBy ? currentReadBy.split(",") : [];
+
+      if (!readArr.includes(userId)) {
+        readArr.push(userId);
+        sheet.getRange(i + 1, readByIdx + 1).setValue(readArr.join(","));
+      }
+      return { success: true };
+    }
+  }
+  throw new Error("Mensaje no encontrado");
+}
+
+function getUnreadCount(userId) {
+  const messages = getMessagesByUser(userId);
+  return messages.filter(m =>
+    m.toId === userId &&
+    (!m.readBy || !m.readBy.split(",").includes(userId))
+  ).length;
+}
+
+// ============ RESTRICCIONES DE MENSAJERÍA ============
+
+function canMessage(fromRole, toRole, fromId, toId) {
+  // Director puede messaging a todos
+  if (fromRole === "director") return true;
+
+  // Teacher puede messaging a director y sus estudiantes
+  if (fromRole === "teacher") {
+    if (toRole === "director") return true;
+    if (toRole === "student") {
+      const teacherStudents = getUsers().filter(u =>
+        u.role === "student" && u.group_id &&
+        getGroups().some(g => g.teacher_id === fromId && g.id === u.group_id)
+      );
+      return teacherStudents.some(s => s.id === toId);
+    }
+    return false;
+  }
+
+  // Student solo puede messaging a su teacher y director
+  if (fromRole === "student") {
+    if (toRole === "director") return true;
+    if (toRole === "teacher") {
+      const user = getUsers().find(u => u.id === fromId);
+      const group = user?.group_id ? getGroups().find(g => g.id === user.group_id) : null;
+      return group?.teacher_id === toId;
+    }
+    return false;
+  }
+
+  return false;
 }

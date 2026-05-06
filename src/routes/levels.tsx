@@ -499,7 +499,12 @@ function LevelCard({
         >
           <div className="grid grid-cols-2 gap-2.5">
             {level.categories.map((cat, idx) => (
-              <CategoryFolder key={cat.id} category={cat} index={idx} onTap={() => onCategoryTap(cat.id)} />
+              <CategoryFolder
+                key={cat.id}
+                category={cat}
+                index={idx}
+                onTap={() => onCategoryTap(cat.id)}
+              />
             ))}
           </div>
 

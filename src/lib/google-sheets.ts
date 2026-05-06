@@ -1,7 +1,9 @@
 // Google Sheets & Drive API via Google Apps Script
 // This version works with any frontend (Vite, Cloudflare Workers, etc.)
 
-const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbyng--gILDcyPV-rpTCoUbrzc1bZzYR8BQ3iVPdtlIYgpI906M_5nBVXXWb2KmtVoU/exec";
+const APPS_SCRIPT_URL =
+  import.meta.env.VITE_APPS_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycbzMalcgobIMdMFXQFMMQooROkT4v2TKjB8zPA5CsY_XrAmxnQ6m-tz-mHhwc4D6u6DT/exec";
 
 export interface GSheetUser {
   id: string;
@@ -11,6 +13,10 @@ export interface GSheetUser {
   password?: string;
   avatar_url?: string;
   created_at: string;
+  app_code?: string;
+  institutionName?: string;
+  group_id?: string;
+  numeroControl?: string;
 }
 
 export interface GSheetItem {
@@ -31,6 +37,28 @@ export interface GSheetStats {
   date: string;
 }
 
+export interface GSheetGroup {
+  id: string;
+  name: string;
+  modulo: number;
+  teacher_id: string;
+  director_id: string;
+  anio_escolar: string;
+  capacidad: number;
+  horario: string;
+  status: "ACTIVO" | "INACTIVO";
+  created_at: string;
+}
+
+export interface GSheetMessage {
+  id: string;
+  fromId: string;
+  toId: string;
+  text: string;
+  createdAt: string;
+  readBy: string;
+}
+
 async function callGScript<T>(action: string, data?: Record<string, unknown>): Promise<T> {
   if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
     console.warn("⚠️ APPS_SCRIPT_URL not configured. Using mock mode.");
@@ -39,7 +67,11 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
 
   const response = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    mode: "cors",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8",
+    },
     body: JSON.stringify({ action, ...data }),
   });
 
@@ -47,7 +79,14 @@ async function callGScript<T>(action: string, data?: Record<string, unknown>): P
     throw new Error(`GScript error: ${response.status}`);
   }
 
-  const result = await response.json();
+  const text = await response.text();
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+  }
+
   if (!result.success) {
     throw new Error(result.error || "Unknown error");
   }
@@ -122,6 +161,74 @@ export const gapi = {
 
   async sendWelcomeEmail(email: string, name: string): Promise<void> {
     return callGScript<void>("sendWelcomeEmail", { email, name });
+  },
+
+  async getGroups(filters?: {
+    modulo?: number;
+    teacher_id?: string;
+    director_id?: string;
+    anio_escolar?: string;
+  }): Promise<GSheetGroup[]> {
+    return callGScript<GSheetGroup[]>("getGroups", { filters });
+  },
+
+  async createGroup(group: Omit<GSheetGroup, "id" | "created_at">): Promise<GSheetGroup> {
+    return callGScript<GSheetGroup>("createGroup", { group });
+  },
+
+  async updateGroup(id: string, updates: Partial<GSheetGroup>): Promise<GSheetGroup> {
+    return callGScript<GSheetGroup>("updateGroup", { id, updates });
+  },
+
+  async deleteGroup(id: string): Promise<void> {
+    return callGScript<void>("deleteGroup", { id });
+  },
+
+  async assignStudentToGroup(
+    studentId: string,
+    groupId: string,
+  ): Promise<{ studentId: string; groupId: string }> {
+    return callGScript<{ studentId: string; groupId: string }>("assignStudentToGroup", {
+      studentId,
+      groupId,
+    });
+  },
+
+  async getStudentsByGroup(groupId: string): Promise<GSheetUser[]> {
+    return callGScript<GSheetUser[]>("getStudentsByGroup", { groupId });
+  },
+
+  async canMessage(
+    fromRole: string,
+    toRole: string,
+    fromId: string,
+    toId: string,
+  ): Promise<boolean> {
+    return callGScript<boolean>("canMessage", { fromRole, toRole, fromId, toId });
+  },
+
+  async getMessagesByUser(userId: string): Promise<GSheetMessage[]> {
+    return callGScript<GSheetMessage[]>("getMessagesByUser", { userId });
+  },
+
+  async getConversation(userId1: string, userId2: string): Promise<GSheetMessage[]> {
+    return callGScript<GSheetMessage[]>("getConversation", { userId1, userId2 });
+  },
+
+  async createMessage(message: {
+    fromId: string;
+    toId: string;
+    text: string;
+  }): Promise<GSheetMessage> {
+    return callGScript<GSheetMessage>("createMessage", { message });
+  },
+
+  async markMessageRead(messageId: string, userId: string): Promise<{ success: boolean }> {
+    return callGScript<{ success: boolean }>("markMessageRead", { messageId, userId });
+  },
+
+  async getUnreadCount(userId: string): Promise<number> {
+    return callGScript<number>("getUnreadCount", { userId });
   },
 
   isConfigured(): boolean {

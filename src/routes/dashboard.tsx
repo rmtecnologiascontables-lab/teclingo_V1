@@ -11,6 +11,7 @@ import {
   unreadCountFor,
   type Role,
 } from "@/lib/demo-store";
+import { gapi } from "@/lib/google-sheets";
 import { generateQRDataURL } from "@/lib/qr-utils";
 import {
   Users,
@@ -36,11 +37,14 @@ function DashboardPage() {
   const session = useDemoSession();
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [studentStats, setStudentStats] = useState<any[]>([]);
+  const [gsUsers, setGsUsers] = useState<any[]>([]);
+  const [gsUnreadCount, setGsUnreadCount] = useState(0);
 
   useEffect(() => {
     if (session === null && typeof window !== "undefined") {
       const t = setTimeout(() => {
-        if (!window.localStorage.getItem("demo.session")) navigate({ to: "/login", search: { role: "student", demo: false } });
+        if (!window.localStorage.getItem("demo.session"))
+          navigate({ to: "/login", search: { role: "student", demo: false } });
       }, 50);
       return () => clearTimeout(t);
     }
@@ -70,11 +74,32 @@ function DashboardPage() {
             const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
             const resp = await fetch(scriptUrl, {
               method: "POST",
-              body: JSON.stringify({ action: "getStats", userId: session.id })
+              body: JSON.stringify({ action: "getStats", userId: session.id }),
             });
             const result = await resp.json();
             if (result.success) setStudentStats(result.data);
-          } catch (e) { console.error(e); }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
+        // GS unread count
+        if (gapi.isConfigured()) {
+          try {
+            const users = await gapi.getUsers();
+            setGsUsers(users);
+            const gsUser = users.find((u: any) => u.email === session.email);
+            if (gsUser?.id) {
+              const msgs = await gapi.getMessagesByUser(gsUser.id);
+              const unread = msgs.filter(
+                (m: any) =>
+                  m.toId === gsUser.id && (!m.readBy || !m.readBy.split(",").includes(gsUser.id)),
+              ).length;
+              setGsUnreadCount(unread);
+            }
+          } catch (e) {
+            console.error("GS messages error:", e);
+          }
         }
       }
     };
@@ -93,10 +118,11 @@ function DashboardPage() {
 
   const users = getUsers();
   const messages = getMessages();
-  const unread = unreadCountFor(session.id);
-  
+  const unread =
+    gapi.isConfigured() && gsUnreadCount > 0 ? gsUnreadCount : unreadCountFor(session.id);
+
   // Calcular progreso dinámico
-  const completedCount = studentStats.filter(s => s.metric === "lesson_completed").length;
+  const completedCount = studentStats.filter((s) => s.metric === "lesson_completed").length;
   const dynamicProgress = Math.min(100, Math.round((completedCount / 20) * 100));
 
   const roleLabel: Record<Role, string> = {
@@ -113,11 +139,11 @@ function DashboardPage() {
 
   return (
     <PhoneFrame>
-      <div 
+      <div
         className="min-h-screen flex flex-col transition-colors duration-500"
         style={{ background: "var(--background)" }}
       >
-        <div 
+        <div
           className="absolute inset-0 opacity-0 dark:opacity-100 transition-opacity duration-500"
           style={{ background: roleStyles[session.role], zIndex: 0 }}
         />
@@ -164,41 +190,64 @@ function DashboardPage() {
           {/* Título Desktop - Visible solo en pantallas grandes */}
           <div className="hidden lg:flex lg:items-center lg:justify-between px-10 pt-10 pb-6">
             <div>
-              {session.role === 'director' && (
+              {session.role === "director" && (
                 <>
-                  <h1 className="text-4xl font-black text-foreground tracking-tighter">Panel de Gestión Institucional</h1>
-                  <p className="text-foreground/55 font-medium mt-1">Bienvenido de nuevo, {session.name}</p>
+                  <h1 className="text-4xl font-black text-foreground tracking-tighter">
+                    Panel de Gestión Institucional
+                  </h1>
+                  <p className="text-foreground/55 font-medium mt-1">
+                    Bienvenido de nuevo, {session.name}
+                  </p>
                 </>
               )}
-              {session.role === 'student' && (
+              {session.role === "student" && (
                 <>
-                  <h1 className="text-4xl font-black text-foreground tracking-tighter">Mi Panel de Aprendizaje</h1>
-                  <p className="text-foreground/55 font-medium mt-1">Bienvenido, {session.name} · {session.institutionName || "ITSP"}</p>
+                  <h1 className="text-4xl font-black text-foreground tracking-tighter">
+                    Mi Panel de Aprendizaje
+                  </h1>
+                  <p className="text-foreground/55 font-medium mt-1">
+                    Bienvenido, {session.name} · {session.institutionName || "ITSP"}
+                  </p>
                 </>
               )}
-              {session.role === 'teacher' && (
+              {session.role === "teacher" && (
                 <>
-                  <h1 className="text-4xl font-black text-foreground tracking-tighter">Panel Docente</h1>
-                  <p className="text-foreground/55 font-medium mt-1">Hola, {session.name} · Ciclo 2026-1</p>
+                  <h1 className="text-4xl font-black text-foreground tracking-tighter">
+                    Panel Docente
+                  </h1>
+                  <p className="text-foreground/55 font-medium mt-1">
+                    Hola, {session.name} · Ciclo 2026-1
+                  </p>
                 </>
               )}
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border border-border" style={{ background: "var(--gradient-cyan)" }}>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border border-border"
+                style={{ background: "var(--gradient-cyan)" }}
+              >
                 {session.avatar ?? "👤"}
               </div>
               <div>
                 <p className="text-sm font-black text-foreground">{session.name}</p>
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-bold">{roleLabel[session.role]}</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-bold">
+                  {roleLabel[session.role]}
+                </p>
               </div>
               <div className="flex gap-2 ml-4">
                 {session.app_code && (
-                  <button onClick={() => navigate({ to: "/settings" })} className="px-4 py-2 rounded-xl glass text-xs font-bold text-foreground/70 flex items-center gap-2 border border-border hover:bg-foreground/5 transition-colors">
+                  <button
+                    onClick={() => navigate({ to: "/settings" })}
+                    className="px-4 py-2 rounded-xl glass text-xs font-bold text-foreground/70 flex items-center gap-2 border border-border hover:bg-foreground/5 transition-colors"
+                  >
                     <QrCode className="w-4 h-4" /> Mi Perfil
                   </button>
                 )}
                 <button
-                  onClick={() => { logout(); navigate({ to: "/login", search: { role: "student", demo: false } }); }}
+                  onClick={() => {
+                    logout();
+                    navigate({ to: "/login", search: { role: "student", demo: false } });
+                  }}
                   className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/10 flex items-center gap-2 hover:bg-red-500/20 transition-colors"
                 >
                   <LogOut className="w-4 h-4" /> Salir
@@ -213,14 +262,32 @@ function DashboardPage() {
               <div className="px-5 lg:px-0 grid grid-cols-3 gap-2 lg:gap-4">
                 {session.role === "director" ? (
                   <>
-                    <Stat icon={<Users className="w-4 h-4" />} label="Comunidad" value={users.filter(u => u.app_code === session.app_code).length} />
-                    <Stat icon={<BookOpen className="w-4 h-4" />} label="Docentes" value={users.filter(u => u.app_code === session.app_code && u.role === "teacher").length} />
+                    <Stat
+                      icon={<Users className="w-4 h-4" />}
+                      label="Comunidad"
+                      value={users.filter((u) => u.app_code === session.app_code).length}
+                    />
+                    <Stat
+                      icon={<BookOpen className="w-4 h-4" />}
+                      label="Docentes"
+                      value={
+                        users.filter((u) => u.app_code === session.app_code && u.role === "teacher")
+                          .length
+                      }
+                    />
                     <Stat icon={<Activity className="w-4 h-4" />} label="Alertas" value={0} />
                   </>
                 ) : session.role === "teacher" ? (
                   <>
                     <Stat icon={<Users className="w-4 h-4" />} label="Mis Grupos" value={1} />
-                    <Stat icon={<GraduationCap className="w-4 h-4" />} label="Alumnos" value={users.filter(u => u.app_code === session.app_code && u.role === "student").length} />
+                    <Stat
+                      icon={<GraduationCap className="w-4 h-4" />}
+                      label="Alumnos"
+                      value={
+                        users.filter((u) => u.app_code === session.app_code && u.role === "student")
+                          .length
+                      }
+                    />
                     <Stat
                       icon={<MessageSquare className="w-4 h-4" />}
                       label="Mensajes"
@@ -230,8 +297,18 @@ function DashboardPage() {
                   </>
                 ) : (
                   <>
-                    <Stat icon={<GraduationCap className="w-4 h-4" />} label="Nivel" value="B2" isString />
-                    <Stat icon={<Activity className="w-4 h-4" />} label="Progreso" value={`${dynamicProgress}%`} isString />
+                    <Stat
+                      icon={<GraduationCap className="w-4 h-4" />}
+                      label="Nivel"
+                      value="B2"
+                      isString
+                    />
+                    <Stat
+                      icon={<Activity className="w-4 h-4" />}
+                      label="Progreso"
+                      value={`${dynamicProgress}%`}
+                      isString
+                    />
                     <Stat
                       icon={<MessageSquare className="w-4 h-4" />}
                       label="Mensajes"
@@ -246,7 +323,9 @@ function DashboardPage() {
               <div className="px-5 lg:px-0 mt-4 lg:mt-0">
                 {session.role === "director" && <DirectorPanel />}
                 {session.role === "teacher" && <TeacherPanel meId={session.id} />}
-                {session.role === "student" && <StudentPanel meId={session.id} initialStats={studentStats} />}
+                {session.role === "student" && (
+                  <StudentPanel meId={session.id} initialStats={studentStats} />
+                )}
               </div>
             </div>
 
@@ -267,10 +346,18 @@ function DashboardPage() {
                     />
                     <ActionRow
                       to={session.last_category_id ? "/lesson" : "/levels"}
-                      search={session.last_category_id ? { categoryId: session.last_category_id } : undefined}
+                      search={
+                        session.last_category_id
+                          ? { categoryId: session.last_category_id }
+                          : undefined
+                      }
                       icon={<BookOpen className="w-4 h-4" />}
                       title="Continuar mi Lección"
-                      subtitle={session.last_category_id ? `Continuar en ${session.last_category_id.toUpperCase()}` : "Explora tus niveles"}
+                      subtitle={
+                        session.last_category_id
+                          ? `Continuar en ${session.last_category_id.toUpperCase()}`
+                          : "Explora tus niveles"
+                      }
                     />
                   </>
                 ) : session.role === "teacher" ? (
@@ -402,9 +489,9 @@ function ActionRow({
 function DirectorPanel() {
   const session = useDemoSession();
   const allUsers = getUsers();
-  
+
   // Filtramos usuarios que pertenecen a la misma institución que el director
-  const institutionalUsers = allUsers.filter(u => u.app_code === session?.app_code);
+  const institutionalUsers = allUsers.filter((u) => u.app_code === session?.app_code);
   const teachers = institutionalUsers.filter((u) => u.role === "teacher").length;
   const students = institutionalUsers.filter((u) => u.role === "student").length;
 
@@ -419,15 +506,20 @@ function DirectorPanel() {
         <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-3xl -mr-16 -mt-16" />
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">Código de Vinculación</p>
-            <h3 className="text-2xl font-black text-foreground tracking-tighter mt-1">{session?.app_code}</h3>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">
+              Código de Vinculación
+            </p>
+            <h3 className="text-2xl font-black text-foreground tracking-tighter mt-1">
+              {session?.app_code}
+            </h3>
           </div>
           <div className="bg-foreground/5 p-2 rounded-2xl border border-border">
             <QrCode className="w-6 h-6 text-foreground" />
           </div>
         </div>
         <p className="text-[11px] text-foreground/50 leading-relaxed">
-          Comparte este código con tus alumnos y docentes para que se vinculen al {session?.institutionName || "ITSP"}.
+          Comparte este código con tus alumnos y docentes para que se vinculen al{" "}
+          {session?.institutionName || "ITSP"}.
         </p>
       </div>
 
@@ -440,7 +532,7 @@ function DirectorPanel() {
         <Row label="Docentes vinculados" value={teachers} />
         <Row label="Alumnos registrados" value={students} />
         <Row label="Total miembros" value={institutionalUsers.length} />
-        
+
         <div className="pt-2">
           <Link
             to="/settings"
@@ -458,9 +550,9 @@ function DirectorPanel() {
 function TeacherPanel({ meId }: { meId: string }) {
   const session = useDemoSession();
   const messages = getMessages().filter((m) => m.toId === meId || m.fromId === meId);
-  const institutionalUsers = getUsers().filter(u => u.app_code === session?.app_code);
+  const institutionalUsers = getUsers().filter((u) => u.app_code === session?.app_code);
   const myStudents = institutionalUsers.filter((u) => u.role === "student");
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -473,7 +565,9 @@ function TeacherPanel({ meId }: { meId: string }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-emerald-400" />
-            <p className="text-xs font-bold uppercase tracking-widest text-foreground/90">Gestión Académica</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-foreground/90">
+              Gestión Académica
+            </p>
           </div>
           <span className="text-xs font-bold px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg border border-emerald-500/20">
             Ciclo 2026-1
@@ -498,7 +592,9 @@ function TeacherPanel({ meId }: { meId: string }) {
         </div>
 
         <div className="mt-4 pt-4 border-t border-white/5 space-y-2.5">
-          <Row label="Mensajes pendientes" value={messages.length} />
+          <Link to="/messages" className="block">
+            <Row label="Mensajes pendientes" value={messages.length} />
+          </Link>
           <Row label="Tareas por revisar" value={4} />
           <Row label="Promedio grupal" value="8.4" />
         </div>
@@ -507,11 +603,11 @@ function TeacherPanel({ meId }: { meId: string }) {
   );
 }
 
-function StudentPanel({ meId, initialStats }: { meId: string, initialStats: any[] }) {
+function StudentPanel({ meId, initialStats }: { meId: string; initialStats: any[] }) {
   const session = useDemoSession();
   const myMsgs = getMessages().filter((m) => m.toId === meId || m.fromId === meId);
-  
-  const completedCount = initialStats.filter(s => s.metric === "lesson_completed").length;
+
+  const completedCount = initialStats.filter((s) => s.metric === "lesson_completed").length;
   const xp = completedCount * 150;
   const progress = Math.min(100, Math.round((completedCount / 20) * 100));
 
@@ -526,14 +622,16 @@ function StudentPanel({ meId, initialStats }: { meId: string, initialStats: any[
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-cyan-400" />
-            <p className="text-xs font-bold uppercase tracking-widest text-foreground/90">Mi Progreso ITSP</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-foreground/90">
+              Mi Progreso ITSP
+            </p>
           </div>
           <span className="text-xl font-black text-cyan-400">{progress}%</span>
         </div>
-        
+
         {/* Barra de progreso visual */}
         <div className="h-3 bg-foreground/5 rounded-full overflow-hidden border border-border/40 mb-4">
-          <motion.div 
+          <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1, ease: "easeOut" }}

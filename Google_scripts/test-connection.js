@@ -1,4 +1,5 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyng--gILDcyPV-rpTCoUbrzc1bZzYR8BQ3iVPdtlIYgpI906M_5nBVXXWb2KmtVoU/exec";
+const SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbyng--gILDcyPV-rpTCoUbrzc1bZzYR8BQ3iVPdtlIYgpI906M_5nBVXXWb2KmtVoU/exec";
 
 async function runTest() {
   console.log("🚀 Iniciando prueba de conexión con el backend TecLingo...\n");
@@ -21,30 +22,43 @@ async function runTest() {
       institutionName: "TecNM Pánuco",
       carrera: "Ingeniería en Sistemas",
       semestre: "8",
-      numeroControl: "TEST-" + Math.floor(Math.random() * 1000)
+      numeroControl: "TEST-" + Math.floor(Math.random() * 1000),
     };
 
     const postRes = await fetch(SCRIPT_URL, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({
-        action: 'createUser',
-        user: testUser
+        action: "createUser",
+        user: testUser,
       }),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
 
     const postData = await postRes.json();
-    
+
     if (postData.success) {
       console.log("✅ ¡Conexión exitosa! El backend guardó al usuario y devolvió esta estructura:");
       console.log(postData.data);
       console.log("\n🔍 Análisis de Columnas Frontend vs Backend:");
-      
-      const expectedColumns = ["id", "name", "email", "role", "app_code", "institutionName", "carrera", "semestre", "numeroControl", "password", "avatar_url", "created_at"];
+
+      const expectedColumns = [
+        "id",
+        "name",
+        "email",
+        "role",
+        "app_code",
+        "institutionName",
+        "carrera",
+        "semestre",
+        "numeroControl",
+        "password",
+        "avatar_url",
+        "created_at",
+      ];
       const receivedColumns = Object.keys(postData.data);
-      
+
       let allMatch = true;
-      expectedColumns.forEach(col => {
+      expectedColumns.forEach((col) => {
         if (!receivedColumns.includes(col)) {
           console.log(`❌ Falta mapear la columna: ${col}`);
           allMatch = false;
@@ -54,13 +68,14 @@ async function runTest() {
       });
 
       if (allMatch) {
-        console.log("\n🎉 ¡Las columnas coinciden perfectamente! La base de datos y el front están 100% sincronizados.");
+        console.log(
+          "\n🎉 ¡Las columnas coinciden perfectamente! La base de datos y el front están 100% sincronizados.",
+        );
         console.log("👉 IMPORTANTE: Revisa tu Google Sheet, deberías ver la fila insertada.");
       }
     } else {
       console.log("❌ Error en el backend (ej. correo duplicado):", postData.error);
     }
-
   } catch (error) {
     console.error("💥 Error fatal de red:", error);
   }

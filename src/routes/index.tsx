@@ -22,20 +22,20 @@ function IndexPage() {
     const seen = sessionStorage.getItem("teclingo-splash");
 
     if (seen) {
-      navigate({ 
-        to: "/login", 
+      navigate({
+        to: "/login",
         search: { role: "student", demo: false },
-        replace: true 
+        replace: true,
       });
       return;
     }
 
     const t = setTimeout(() => {
       sessionStorage.setItem("teclingo-splash", "1");
-      navigate({ 
-        to: "/login", 
+      navigate({
+        to: "/login",
         search: { role: "student", demo: false },
-        replace: true 
+        replace: true,
       });
     }, 2400);
 
@@ -88,9 +88,7 @@ function Splash({ onSkip }: { onSkip: () => void }) {
         <p className="text-xs uppercase tracking-[0.4em] text-white/60 font-semibold">
           Language Platform
         </p>
-        <p className="mt-2 text-[11px] tracking-[0.3em] text-white/40">
-          CEFR B2+ · TOEFL READY
-        </p>
+        <p className="mt-2 text-[11px] tracking-[0.3em] text-white/40">CEFR B2+ · TOEFL READY</p>
       </motion.div>
 
       <motion.p

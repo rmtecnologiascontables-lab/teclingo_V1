@@ -47,7 +47,10 @@ export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
       { title: "Perfil y Configuración · TecLingo" },
-      { name: "description", content: "Tu perfil institucional, académico y configuración de TecLingo." },
+      {
+        name: "description",
+        content: "Tu perfil institucional, académico y configuración de TecLingo.",
+      },
     ],
   }),
 });
@@ -93,7 +96,7 @@ function SettingsPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Estados para edición
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -119,7 +122,7 @@ function SettingsPage() {
       try {
         const { updateUserData } = await import("@/lib/demo-store");
         const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
-        
+
         const response = await fetch(scriptUrl, {
           method: "POST",
           body: JSON.stringify({
@@ -127,10 +130,10 @@ function SettingsPage() {
             fileName: `avatar_${user.email}_${Date.now()}`,
             mimeType: file.type,
             data: base64String,
-            folderType: "avatars"
-          })
+            folderType: "avatars",
+          }),
         });
-        
+
         const result = await response.json();
         if (result.success && result.data.url) {
           const newAvatarUrl = result.data.url;
@@ -147,46 +150,53 @@ function SettingsPage() {
     };
     reader.readAsDataURL(file);
   };
-  
-  const handleConstancia = useCallback((tipo: string) => {
-    if (!user) return;
-    showToast(`Generando ${tipo}...`);
-    
-    const doc = new jsPDF();
-    doc.setFontSize(22);
-    doc.setTextColor(0, 51, 102); // Azul institucional
-    doc.text("INSTITUTO TECNOLÓGICO DE PÁNUCO", 105, 30, { align: "center" });
-    
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text("CONSTANCIA DE ESTUDIOS", 105, 50, { align: "center" });
-    
-    doc.setFontSize(12);
-    const fecha = new Date().toLocaleDateString();
-    doc.text(`Fecha: ${fecha}`, 160, 65);
-    
-    doc.text(`A QUIEN CORRESPONDA:`, 20, 85);
-    doc.text(`Por medio de la presente se hace constar que el alumno(a):`, 20, 95);
-    
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(user.name.toUpperCase(), 105, 110, { align: "center" });
-    
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Con número de control: ${user.numeroControl || "N/A"}`, 20, 125);
-    doc.text(`Carrera: ${user.carrera || "INDUSTRIAL"}`, 20, 135);
-    doc.text(`Semestre: ${user.semestre || "6to"}`, 20, 145);
-    
-    doc.text(`Se encuentra debidamente inscrito en esta institución para el presente periodo escolar.`, 20, 160);
-    
-    doc.text(`Atentamente,`, 105, 200, { align: "center" });
-    doc.text(`___________________________`, 105, 220, { align: "center" });
-    doc.text(`Dirección del CLE - ITSP`, 105, 230, { align: "center" });
 
-    doc.save(`${tipo.replace(/\s+/g, '_')}_${user.name}.pdf`);
-    showToast("Descarga completada");
-  }, [user]);
+  const handleConstancia = useCallback(
+    (tipo: string) => {
+      if (!user) return;
+      showToast(`Generando ${tipo}...`);
+
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.setTextColor(0, 51, 102); // Azul institucional
+      doc.text("INSTITUTO TECNOLÓGICO DE PÁNUCO", 105, 30, { align: "center" });
+
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.text("CONSTANCIA DE ESTUDIOS", 105, 50, { align: "center" });
+
+      doc.setFontSize(12);
+      const fecha = new Date().toLocaleDateString();
+      doc.text(`Fecha: ${fecha}`, 160, 65);
+
+      doc.text(`A QUIEN CORRESPONDA:`, 20, 85);
+      doc.text(`Por medio de la presente se hace constar que el alumno(a):`, 20, 95);
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(user.name.toUpperCase(), 105, 110, { align: "center" });
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Con número de control: ${user.numeroControl || "N/A"}`, 20, 125);
+      doc.text(`Carrera: ${user.carrera || "INDUSTRIAL"}`, 20, 135);
+      doc.text(`Semestre: ${user.semestre || "6to"}`, 20, 145);
+
+      doc.text(
+        `Se encuentra debidamente inscrito en esta institución para el presente periodo escolar.`,
+        20,
+        160,
+      );
+
+      doc.text(`Atentamente,`, 105, 200, { align: "center" });
+      doc.text(`___________________________`, 105, 220, { align: "center" });
+      doc.text(`Dirección del CLE - ITSP`, 105, 230, { align: "center" });
+
+      doc.save(`${tipo.replace(/\s+/g, "_")}_${user.name}.pdf`);
+      showToast("Descarga completada");
+    },
+    [user],
+  );
 
   const handlePasswordChange = () => {
     showToast("🔒 Función de seguridad: Se ha enviado un enlace de cambio a tu correo.");
@@ -204,7 +214,7 @@ function SettingsPage() {
     if (session) {
       setUser(session);
       setEditName(session.name);
-      
+
       // Si es director, cargamos sus datos institucionales específicos desde el backend
       if (session.role === "director" && session.app_code) {
         import("@/lib/demo-store").then(({ getInstitutionData }) => {
@@ -219,9 +229,9 @@ function SettingsPage() {
           });
         });
       } else {
-        const today = new Date().toISOString().split('T')[0];
-        setEditPhone(session.phone || ""); 
-        setEditAddress(session.domicilio || ""); 
+        const today = new Date().toISOString().split("T")[0];
+        setEditPhone(session.phone || "");
+        setEditAddress(session.domicilio || "");
         setEditInstitution(session.institutionName || "ITSP · CLE");
         setEditModalidad(session.modalidad || "Presencial");
         setEditEntryDate(session.fecha_ingreso || today);
@@ -254,17 +264,17 @@ function SettingsPage() {
   const handleSave = async () => {
     if (!user) return;
     showToast("Sincronizando con base de datos...");
-    
+
     try {
       const { updateUserData, updateInstitutionData } = await import("@/lib/demo-store");
-      
+
       // 1. Actualizar perfil personal (Usuarios)
-      await updateUserData(user.id, { 
+      await updateUserData(user.id, {
         name: editName,
         fecha_ingreso: editEntryDate,
         modalidad: editModalidad,
         phone: editPhone,
-        domicilio: editAddress
+        domicilio: editAddress,
       });
 
       // 2. Actualizar datos institucionales globales (Instituciones)
@@ -273,7 +283,7 @@ function SettingsPage() {
           nombre_institucion: editInstitution,
           direccion: editAddress,
           telefono: editPhone,
-          director_name: editName
+          director_name: editName,
         });
       }
 
@@ -289,7 +299,7 @@ function SettingsPage() {
     const next = { ...prefs, ...patch };
     setPrefs(next);
     savePrefs(next);
-    
+
     // Aplicar Modo Oscuro al instante
     if (patch.darkMode !== undefined) {
       if (patch.darkMode) {
@@ -298,7 +308,7 @@ function SettingsPage() {
         document.documentElement.classList.remove("dark");
       }
     }
-    
+
     showToast(`Preferencia: ${Object.keys(patch)[0]} actualizada`);
   };
 
@@ -332,13 +342,16 @@ function SettingsPage() {
     if (src.startsWith("http")) {
       try {
         // Intentar usar el puente de GAS para evitar CORS
-        const fileId = src.split("id=")[1]?.split("&")[0] || src.split("/d/")[1]?.split("/")[0] || src.split("/d/")[1]?.split("&")[0];
+        const fileId =
+          src.split("id=")[1]?.split("&")[0] ||
+          src.split("/d/")[1]?.split("/")[0] ||
+          src.split("/d/")[1]?.split("&")[0];
         if (!fileId) return src;
 
         const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
         const resp = await fetch(scriptUrl, {
           method: "POST",
-          body: JSON.stringify({ action: "getFileBase64", fileId })
+          body: JSON.stringify({ action: "getFileBase64", fileId }),
         });
         const result = await resp.json();
         return result.success ? result.data : src;
@@ -352,7 +365,7 @@ function SettingsPage() {
   const handleDownloadPNG = useCallback(async () => {
     if (!qrDataUrl || !user) return;
     showToast("Generando credencial premium...");
-    
+
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -418,8 +431,14 @@ function SettingsPage() {
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
     ctx.font = "bold 32px Inter, sans-serif";
-    wrapText(user.institutionName || "INSTITUTO TECNOLÓGICO DE PÁNUCO", canvas.width / 2, 80, 600, 40);
-    
+    wrapText(
+      user.institutionName || "INSTITUTO TECNOLÓGICO DE PÁNUCO",
+      canvas.width / 2,
+      80,
+      600,
+      40,
+    );
+
     ctx.font = "500 20px Inter, sans-serif";
     ctx.globalAlpha = 0.8;
     ctx.fillText("CENTRO DE LENGUAS EXTRANJERAS", canvas.width / 2, 160);
@@ -435,24 +454,24 @@ function SettingsPage() {
     ctx.arc(avatarX, avatarY, avatarR + 10, 0, Math.PI * 2);
     ctx.fillStyle = "#FFFFFF";
     ctx.fill();
-    
+
     ctx.beginPath();
     ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
     ctx.clip();
-    
+
     const avatarSrc = await ensureBase64(user.avatar_url || user.avatar || "");
     if (avatarSrc && (avatarSrc.startsWith("data:image") || avatarSrc.startsWith("http"))) {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = avatarSrc;
-      
+
       // Añadir un timeout para que no se cuelgue
       await new Promise((resolve) => {
         img.onload = resolve;
         img.onerror = resolve; // Continuar aunque falle
-        setTimeout(resolve, 3000); 
+        setTimeout(resolve, 3000);
       });
-      
+
       if (img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, avatarX - avatarR, avatarY - avatarR, avatarR * 2, avatarR * 2);
       } else {
@@ -473,7 +492,7 @@ function SettingsPage() {
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 52px Inter, sans-serif";
     ctx.fillText(user.name.toUpperCase(), canvas.width / 2, 520);
-    
+
     ctx.fillStyle = "#0e7490";
     ctx.font = "bold 28px Inter, sans-serif";
     ctx.fillText(user.role === "student" ? "ESTUDIANTE" : "PERSONAL", canvas.width / 2, 570);
@@ -509,8 +528,8 @@ function SettingsPage() {
     const qrSize = 220;
     const qrImg = new Image();
     qrImg.src = qrDataUrl;
-    await new Promise(r => qrImg.onload = r);
-    
+    await new Promise((r) => (qrImg.onload = r));
+
     // Borde suave al QR
     ctx.fillStyle = "#f8fafc";
     drawRoundedRect(canvas.width / 2 - (qrSize / 2 + 15), 940, qrSize + 30, qrSize + 30, 20);
@@ -535,17 +554,17 @@ function SettingsPage() {
   const handleDownloadPDF = useCallback(async () => {
     if (!user || !qrDataUrl) return;
     showToast("Preparando PDF de alta calidad...");
-    
+
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
-      format: [100, 150]
+      format: [100, 150],
     });
 
     // Colores
     const cPrimary = [8, 51, 68]; // cyan-950
     const cAccent = [14, 116, 144]; // cyan-700
-    
+
     // 1. Cabecera Estilizada
     doc.setFillColor(cPrimary[0], cPrimary[1], cPrimary[2]);
     doc.rect(0, 0, 100, 40, "F");
@@ -572,18 +591,21 @@ function SettingsPage() {
         if (tCtx) {
           tempCanvas.width = 200;
           tempCanvas.height = 200;
-          
+
           const img = new Image();
           img.crossOrigin = "anonymous";
           img.src = avatarSrc;
-          await new Promise((r) => { img.onload = r; img.onerror = r; });
+          await new Promise((r) => {
+            img.onload = r;
+            img.onerror = r;
+          });
 
           if (img.complete) {
             tCtx.beginPath();
             tCtx.arc(100, 100, 100, 0, Math.PI * 2);
             tCtx.clip();
             tCtx.drawImage(img, 0, 0, 200, 200);
-            
+
             const circularBase64 = tempCanvas.toDataURL("image/png");
             doc.setFillColor(255, 255, 255);
             doc.circle(50, 42, 16, "F");
@@ -599,7 +621,7 @@ function SettingsPage() {
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(14);
     doc.text(user.name.toUpperCase(), 50, 65, { align: "center" });
-    
+
     doc.setTextColor(cAccent[0], cAccent[1], cAccent[2]);
     doc.setFontSize(9);
     doc.text(user.role === "student" ? "ESTUDIANTE" : "PERSONAL", 50, 72, { align: "center" });
@@ -629,10 +651,12 @@ function SettingsPage() {
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(32, 118, 36, 26, 3, 3, "F");
     doc.addImage(qrDataUrl, "PNG", 40, 120, 20, 20);
-    
+
     doc.setFontSize(6);
     doc.setTextColor(148, 163, 184);
-    doc.text(`VALIDACIÓN INSTITUCIONAL · ${new Date().getFullYear()}`, 50, 146, { align: "center" });
+    doc.text(`VALIDACIÓN INSTITUCIONAL · ${new Date().getFullYear()}`, 50, 146, {
+      align: "center",
+    });
 
     doc.save(`Credencial_Premium_${user.app_code}.pdf`);
   }, [user, qrDataUrl]);
@@ -666,21 +690,25 @@ function SettingsPage() {
 
   return (
     <PhoneFrame>
-      <motion.div 
-        initial={{ opacity: 0 }} 
+      <motion.div
+        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="h-full flex flex-col transition-colors duration-500"
         style={{ background: "var(--background)" }}
       >
         {/* TopBar - Hidden on Desktop for Director since we have Sidebar */}
-        <div className={user?.role === 'director' ? 'lg:hidden' : ''}>
+        <div className={user?.role === "director" ? "lg:hidden" : ""}>
           <TopBar />
         </div>
 
         {/* Desktop Title */}
         <div className="hidden lg:block px-10 pt-10 pb-6">
-          <h1 className="text-4xl font-black text-foreground tracking-tighter">Mi Perfil Estudiantil</h1>
-          <p className="text-foreground/55 font-medium mt-1">Gestiona tu información personal, académica y de seguridad.</p>
+          <h1 className="text-4xl font-black text-foreground tracking-tighter">
+            Mi Perfil Estudiantil
+          </h1>
+          <p className="text-foreground/55 font-medium mt-1">
+            Gestiona tu información personal, académica y de seguridad.
+          </p>
         </div>
 
         {/* Tabs - Centered on Desktop */}
@@ -690,7 +718,9 @@ function SettingsPage() {
               key={t}
               onClick={() => setActiveTab(t)}
               className={`flex-1 py-2 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all ${
-                activeTab === t ? "bg-primary text-primary-foreground shadow-lg" : "text-foreground/40 hover:text-foreground/60"
+                activeTab === t
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-foreground/40 hover:text-foreground/60"
               }`}
             >
               {t === "perfil" ? "Perfil" : t === "academico" ? "Académico" : "Ajustes"}
@@ -698,12 +728,12 @@ function SettingsPage() {
           ))}
         </div>
 
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
-          onChange={handleFileChange} 
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          onChange={handleFileChange}
         />
 
         {activeTab === "perfil" && (
@@ -714,7 +744,11 @@ function SettingsPage() {
                 <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
                   <div className="w-28 h-28 lg:w-40 lg:h-40 rounded-[2.5rem] bg-foreground/5 border-2 border-border overflow-hidden relative shadow-2xl transition-transform active:scale-95 group-hover:border-cyan-500/50">
                     {user?.avatar_url ? (
-                      <img src={user.avatar_url} className="w-full h-full object-cover" alt="Avatar" />
+                      <img
+                        src={user.avatar_url}
+                        className="w-full h-full object-cover"
+                        alt="Avatar"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-foreground/5">
                         <UserCircle2 className="w-16 h-16 text-foreground/20" />
@@ -726,8 +760,12 @@ function SettingsPage() {
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <h2 className="text-xl font-black text-foreground tracking-tight leading-none">{user?.name}</h2>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold mt-2">TecLingo ID · {user?.role?.toUpperCase()}</p>
+                  <h2 className="text-xl font-black text-foreground tracking-tight leading-none">
+                    {user?.name}
+                  </h2>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold mt-2">
+                    TecLingo ID · {user?.role?.toUpperCase()}
+                  </p>
                 </div>
               </div>
 
@@ -740,15 +778,30 @@ function SettingsPage() {
                     <div className="bg-white p-3 rounded-2xl shadow-inner">
                       <img src={qrDataUrl} alt="QR Code" className="w-32 h-32" />
                     </div>
-                    <p className="text-sm font-black text-foreground mt-4 tracking-tighter">{user?.app_code}</p>
+                    <p className="text-sm font-black text-foreground mt-4 tracking-tighter">
+                      {user?.app_code}
+                    </p>
                     <div className="grid grid-cols-3 gap-2 mt-4 w-full">
-                      <button onClick={handleCopy} className="p-2.5 rounded-xl text-xs flex items-center justify-center gap-1 glass-strong border border-border text-foreground/70">
-                        {copied ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      <button
+                        onClick={handleCopy}
+                        className="p-2.5 rounded-xl text-xs flex items-center justify-center gap-1 glass-strong border border-border text-foreground/70"
+                      >
+                        {copied ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
                       </button>
-                      <button onClick={handleDownloadPNG} className="p-2.5 rounded-xl text-xs flex items-center justify-center gap-1 glass-strong border border-border text-foreground/70">
+                      <button
+                        onClick={handleDownloadPNG}
+                        className="p-2.5 rounded-xl text-xs flex items-center justify-center gap-1 glass-strong border border-border text-foreground/70"
+                      >
                         <QrCode className="w-4 h-4" />
                       </button>
-                      <button onClick={handleDownloadPDF} className="p-2.5 rounded-xl text-xs flex items-center justify-center gap-1 glass-strong border border-border text-foreground/70">
+                      <button
+                        onClick={handleDownloadPDF}
+                        className="p-2.5 rounded-xl text-xs flex items-center justify-center gap-1 glass-strong border border-border text-foreground/70"
+                      >
                         <Download className="w-4 h-4" />
                       </button>
                     </div>
@@ -761,52 +814,107 @@ function SettingsPage() {
             <div className="lg:col-span-8 space-y-6 mt-6 lg:mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                 <Section title="Información Personal">
-                  <InfoRow 
-                    icon={<UserCircle2 className="w-4 h-4" />} 
-                    label="Nombre completo" 
-                    value={isEditing ? (
-                      <input value={editName} onChange={e => setEditName(e.target.value)} className="bg-transparent outline-none w-full border-b border-border text-foreground" />
-                    ) : user?.name ?? "Sin registro"} 
+                  <InfoRow
+                    icon={<UserCircle2 className="w-4 h-4" />}
+                    label="Nombre completo"
+                    value={
+                      isEditing ? (
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="bg-transparent outline-none w-full border-b border-border text-foreground"
+                        />
+                      ) : (
+                        (user?.name ?? "Sin registro")
+                      )
+                    }
                   />
-                  <InfoRow icon={<Mail className="w-4 h-4" />} label="Correo" value={user?.email ?? "Sin registro"} />
-                  <InfoRow 
-                    icon={<Phone className="w-4 h-4" />} 
-                    label="Teléfono" 
-                    value={isEditing ? (
-                      <input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="bg-transparent outline-none w-full border-b border-border text-foreground" />
-                    ) : editPhone || "+52 876 543 210"} 
+                  <InfoRow
+                    icon={<Mail className="w-4 h-4" />}
+                    label="Correo"
+                    value={user?.email ?? "Sin registro"}
                   />
-                  <InfoRow 
-                    icon={<MapPin className="w-4 h-4" />} 
-                    label="Domicilio" 
-                    value={isEditing ? (
-                      <input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="bg-transparent outline-none w-full border-b border-border text-foreground" />
-                    ) : editAddress || "Av. México #123, Pánuco, Ver."} 
+                  <InfoRow
+                    icon={<Phone className="w-4 h-4" />}
+                    label="Teléfono"
+                    value={
+                      isEditing ? (
+                        <input
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          className="bg-transparent outline-none w-full border-b border-border text-foreground"
+                        />
+                      ) : (
+                        editPhone || "+52 876 543 210"
+                      )
+                    }
+                  />
+                  <InfoRow
+                    icon={<MapPin className="w-4 h-4" />}
+                    label="Domicilio"
+                    value={
+                      isEditing ? (
+                        <input
+                          value={editAddress}
+                          onChange={(e) => setEditAddress(e.target.value)}
+                          className="bg-transparent outline-none w-full border-b border-border text-foreground"
+                        />
+                      ) : (
+                        editAddress || "Av. México #123, Pánuco, Ver."
+                      )
+                    }
                   />
                 </Section>
 
                 <Section title="Institución">
-                  <InfoRow 
-                    icon={<Building className="w-4 h-4" />} 
-                    label="Escuela" 
-                    value={isEditing && user?.role === "director" ? (
-                      <input value={editInstitution} onChange={e => setEditInstitution(e.target.value)} className="bg-transparent outline-none w-full border-b border-border text-foreground" />
-                    ) : editInstitution} 
+                  <InfoRow
+                    icon={<Building className="w-4 h-4" />}
+                    label="Escuela"
+                    value={
+                      isEditing && user?.role === "director" ? (
+                        <input
+                          value={editInstitution}
+                          onChange={(e) => setEditInstitution(e.target.value)}
+                          className="bg-transparent outline-none w-full border-b border-border text-foreground"
+                        />
+                      ) : (
+                        editInstitution
+                      )
+                    }
                   />
-                  <InfoRow 
-                    icon={<Award className="w-4 h-4" />} 
-                    label={user?.role === "director" ? "Departamento" : "Carrera"} 
-                    value={user?.role === "director" ? "CLE · Centro de Lenguas Extranjeras" : (user?.carrera || "No asignada")} 
+                  <InfoRow
+                    icon={<Award className="w-4 h-4" />}
+                    label={user?.role === "director" ? "Departamento" : "Carrera"}
+                    value={
+                      user?.role === "director"
+                        ? "CLE · Centro de Lenguas Extranjeras"
+                        : user?.carrera || "No asignada"
+                    }
                   />
                   {user?.role === "student" && (
-                    <InfoRow icon={<GraduationCap className="w-4 h-4" />} label="Semestre" value={user?.semestre || "No asignado"} />
+                    <InfoRow
+                      icon={<GraduationCap className="w-4 h-4" />}
+                      label="Semestre"
+                      value={user?.semestre || "No asignado"}
+                    />
                   )}
-                  <InfoRow 
-                    icon={<Calendar className="w-4 h-4" />} 
-                    label="Fecha de ingreso" 
-                    value={isEditing ? (
-                      <input type="date" value={editEntryDate} onChange={e => setEditEntryDate(e.target.value)} className="bg-transparent outline-none w-full border-b border-border text-foreground" />
-                    ) : (editEntryDate ? new Date(editEntryDate).toLocaleDateString() : "No asignada")} 
+                  <InfoRow
+                    icon={<Calendar className="w-4 h-4" />}
+                    label="Fecha de ingreso"
+                    value={
+                      isEditing ? (
+                        <input
+                          type="date"
+                          value={editEntryDate}
+                          onChange={(e) => setEditEntryDate(e.target.value)}
+                          className="bg-transparent outline-none w-full border-b border-border text-foreground"
+                        />
+                      ) : editEntryDate ? (
+                        new Date(editEntryDate).toLocaleDateString()
+                      ) : (
+                        "No asignada"
+                      )
+                    }
                   />
                 </Section>
               </div>
@@ -814,16 +922,25 @@ function SettingsPage() {
               {/* Botones de acción */}
               <div className="px-5 lg:px-0 flex gap-4 mt-6">
                 {!isEditing ? (
-                  <button onClick={() => setIsEditing(true)} className="flex-1 rounded-2xl py-3.5 bg-primary text-primary-foreground font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-1 rounded-2xl py-3.5 bg-primary text-primary-foreground font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
+                  >
                     <Edit3 className="w-4 h-4" /> Editar Perfil
                   </button>
                 ) : (
-                  <button onClick={handleSave} className="flex-1 rounded-2xl py-3.5 bg-emerald-500 text-white font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 rounded-2xl py-3.5 bg-emerald-500 text-white font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
+                  >
                     <Save className="w-4 h-4" /> Guardar Cambios
                   </button>
                 )}
                 {isEditing && (
-                  <button onClick={() => setIsEditing(false)} className="px-6 rounded-2xl bg-foreground/5 text-foreground font-bold flex items-center justify-center border border-border">
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-6 rounded-2xl bg-foreground/5 text-foreground font-bold flex items-center justify-center border border-border"
+                  >
                     Cancelar
                   </button>
                 )}
@@ -839,47 +956,92 @@ function SettingsPage() {
               <div className="glass-strong rounded-3xl p-5 mb-4 border border-border">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-foreground/45 font-semibold">Nivel MCER</p>
-                    <h2 className="text-3xl font-black text-foreground tracking-tight">{studentData.nivelMCER}</h2>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-foreground/45 font-semibold">
+                      Nivel MCER
+                    </p>
+                    <h2 className="text-3xl font-black text-foreground tracking-tight">
+                      {studentData.nivelMCER}
+                    </h2>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-foreground/45 font-semibold">Promedio</p>
-                    <p className="text-2xl font-black text-foreground tracking-tight">{studentData.promedio}</p>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-foreground/45 font-semibold">
+                      Promedio
+                    </p>
+                    <p className="text-2xl font-black text-foreground tracking-tight">
+                      {studentData.promedio}
+                    </p>
                   </div>
                 </div>
                 <div className="h-2 rounded-full overflow-hidden bg-foreground/5">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${(studentData.creditosAprobados / studentData.creditosTotales) * 100}%` }} />
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{
+                      width: `${(studentData.creditosAprobados / studentData.creditosTotales) * 100}%`,
+                    }}
+                  />
                 </div>
                 <p className="text-[10px] text-foreground/40 mt-2 text-center font-medium">
                   {studentData.creditosAprobados}/{studentData.creditosTotales} créditos aprobados
                 </p>
               </div>
-              <InfoRow icon={<Users className="w-4 h-4" />} label="Grupo" value={studentData.grupo} />
-              <InfoRow icon={<GraduationCap className="w-4 h-4" />} label="Semestre actual" value={studentData.semeSemestre} />
+              <InfoRow
+                icon={<Users className="w-4 h-4" />}
+                label="Grupo"
+                value={studentData.grupo}
+              />
+              <InfoRow
+                icon={<GraduationCap className="w-4 h-4" />}
+                label="Semestre actual"
+                value={studentData.semeSemestre}
+              />
             </Section>
-            
+
             <Section title="Documentación y Certificación">
               <div className="grid grid-cols-1 gap-2">
-                <button onClick={() => handleConstancia("Constancia de Estudios")} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-foreground/5 transition-colors border border-border">
+                <button
+                  onClick={() => handleConstancia("Constancia de Estudios")}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-foreground/5 transition-colors border border-border"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><FileText className="w-5 h-5" /></div>
-                    <div className="text-left"><p className="text-sm font-bold text-foreground">Constancia de Estudios</p><p className="text-[10px] text-foreground/40">Generar PDF oficial firmado</p></div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-foreground">Constancia de Estudios</p>
+                      <p className="text-[10px] text-foreground/40">Generar PDF oficial firmado</p>
+                    </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-foreground/20" />
                 </button>
-                <button onClick={() => handleConstancia("Historial Académico")} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-foreground/5 transition-colors border border-border">
+                <button
+                  onClick={() => handleConstancia("Historial Académico")}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-foreground/5 transition-colors border border-border"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center"><BookOpen className="w-5 h-5" /></div>
-                    <div className="text-left"><p className="text-sm font-bold text-foreground">Historial Académico</p><p className="text-[10px] text-foreground/40">Kárdex de calificaciones</p></div>
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-foreground">Historial Académico</p>
+                      <p className="text-[10px] text-foreground/40">Kárdex de calificaciones</p>
+                    </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-foreground/20" />
                 </button>
                 <div className="mt-4 p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10">
                   <div className="flex items-center gap-2 text-cyan-400 mb-1">
                     <Clock className="w-4 h-4" />
-                    <p className="text-[10px] uppercase tracking-widest font-black">Liberación del CLE</p>
+                    <p className="text-[10px] uppercase tracking-widest font-black">
+                      Liberación del CLE
+                    </p>
                   </div>
-                  <p className="text-xs text-foreground/70 leading-relaxed">Faltan <span className="font-bold text-foreground">{studentData.horasLibreCert} horas</span> para completar el requisito institucional.</p>
+                  <p className="text-xs text-foreground/70 leading-relaxed">
+                    Faltan{" "}
+                    <span className="font-bold text-foreground">
+                      {studentData.horasLibreCert} horas
+                    </span>{" "}
+                    para completar el requisito institucional.
+                  </p>
                 </div>
               </div>
             </Section>
@@ -890,36 +1052,94 @@ function SettingsPage() {
         {activeTab === "config" && (
           <div className="flex-1 overflow-y-auto lg:px-10 lg:grid lg:grid-cols-2 lg:gap-8 pb-28 pt-6">
             <Section title="Personalización del Interfaz">
-              <ToggleRow icon={<Moon className="w-4 h-4" />} label="Modo Oscuro" desc="Tema visual de alta fidelidad" value={prefs.darkMode} onChange={v => update({ darkMode: v })} />
-              <ToggleRow icon={<Bell className="w-4 h-4" />} label="Notificaciones Push" desc="Avisos académicos en tiempo real" value={prefs.notifications} onChange={v => update({ notifications: v })} />
-              <ToggleRow icon={<Globe className="w-4 h-4" />} label="Efectos de Sonido" desc="Feedback auditivo de acciones" value={prefs.soundEffects} onChange={v => update({ soundEffects: v })} />
-              <SelectRow icon={<Languages className="w-4 h-4" />} label="Idioma del Sistema" value={prefs.language} options={[{ v: "es", label: "Español" }, { v: "en", label: "English" }]} onChange={v => update({ language: v as Prefs["language"] })} />
+              <ToggleRow
+                icon={<Moon className="w-4 h-4" />}
+                label="Modo Oscuro"
+                desc="Tema visual de alta fidelidad"
+                value={prefs.darkMode}
+                onChange={(v) => update({ darkMode: v })}
+              />
+              <ToggleRow
+                icon={<Bell className="w-4 h-4" />}
+                label="Notificaciones Push"
+                desc="Avisos académicos en tiempo real"
+                value={prefs.notifications}
+                onChange={(v) => update({ notifications: v })}
+              />
+              <ToggleRow
+                icon={<Globe className="w-4 h-4" />}
+                label="Efectos de Sonido"
+                desc="Feedback auditivo de acciones"
+                value={prefs.soundEffects}
+                onChange={(v) => update({ soundEffects: v })}
+              />
+              <SelectRow
+                icon={<Languages className="w-4 h-4" />}
+                label="Idioma del Sistema"
+                value={prefs.language}
+                options={[
+                  { v: "es", label: "Español" },
+                  { v: "en", label: "English" },
+                ]}
+                onChange={(v) => update({ language: v as Prefs["language"] })}
+              />
             </Section>
-            
+
             <div className="space-y-6">
               <Section title="Seguridad de la Cuenta">
-                <button onClick={handlePasswordChange} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-foreground/5 transition-colors border border-border">
+                <button
+                  onClick={handlePasswordChange}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-foreground/5 transition-colors border border-border"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center"><Lock className="w-5 h-5" /></div>
-                    <div className="text-left"><p className="text-sm font-bold text-foreground">Cambiar Contraseña</p><p className="text-[10px] text-foreground/40">Actualizar credenciales de acceso</p></div>
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-foreground">Cambiar Contraseña</p>
+                      <p className="text-[10px] text-foreground/40">
+                        Actualizar credenciales de acceso
+                      </p>
+                    </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-foreground/20" />
                 </button>
                 <div className="mt-2">
-                  <ToggleRow icon={<ShieldCheck className="w-4 h-4" />} label="Verificación en 2 pasos" desc="Protección adicional mediante OAuth" value={twoFactor} onChange={handle2FA} />
+                  <ToggleRow
+                    icon={<ShieldCheck className="w-4 h-4" />}
+                    label="Verificación en 2 pasos"
+                    desc="Protección adicional mediante OAuth"
+                    value={twoFactor}
+                    onChange={handle2FA}
+                  />
                 </div>
               </Section>
 
               <Section title="Soporte y Legal">
                 <div className="grid grid-cols-1 gap-2">
-                  <LinkRow icon={<HelpCircle className="w-4 h-4" />} label="Centro de Ayuda" to="/" />
-                  <LinkRow icon={<Info className="w-4 h-4" />} label="Acerca de TecLingo v2.0" to="/welcome" />
-                  <LinkRow icon={<AlertCircle className="w-4 h-4" />} label="Aviso de Privacidad" to="/" />
+                  <LinkRow
+                    icon={<HelpCircle className="w-4 h-4" />}
+                    label="Centro de Ayuda"
+                    to="/"
+                  />
+                  <LinkRow
+                    icon={<Info className="w-4 h-4" />}
+                    label="Acerca de TecLingo v2.0"
+                    to="/welcome"
+                  />
+                  <LinkRow
+                    icon={<AlertCircle className="w-4 h-4" />}
+                    label="Aviso de Privacidad"
+                    to="/"
+                  />
                 </div>
               </Section>
 
               <div className="px-5 lg:px-0">
-                <button onClick={() => setConfirmLogout(true)} className="w-full rounded-2xl py-4 bg-red-500/10 text-red-500 font-black flex items-center justify-center gap-2 border border-red-500/10 active:scale-95 transition-transform shadow-sm">
+                <button
+                  onClick={() => setConfirmLogout(true)}
+                  className="w-full rounded-2xl py-4 bg-red-500/10 text-red-500 font-black flex items-center justify-center gap-2 border border-red-500/10 active:scale-95 transition-transform shadow-sm"
+                >
                   <LogOut className="w-5 h-5" /> Cerrar Sesión Institucional
                 </button>
               </div>
@@ -929,7 +1149,11 @@ function SettingsPage() {
 
         {/* Toast */}
         {toast && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-24 lg:bottom-10 left-1/2 -translate-x-1/2 glass-strong px-6 py-3 rounded-2xl text-xs font-bold text-foreground shadow-2xl z-50 border border-border animate-bounce">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed bottom-24 lg:bottom-10 left-1/2 -translate-x-1/2 glass-strong px-6 py-3 rounded-2xl text-xs font-bold text-foreground shadow-2xl z-50 border border-border animate-bounce"
+          >
             {toast}
           </motion.div>
         )}
@@ -960,10 +1184,21 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3 px-2.5 py-2.5 rounded-xl">
-      <span className="w-8 h-8 rounded-xl flex items-center justify-center text-foreground/80" style={{ background: "var(--foreground-5)", border: "1px solid var(--border)" }}>
+      <span
+        className="w-8 h-8 rounded-xl flex items-center justify-center text-foreground/80"
+        style={{ background: "var(--foreground-5)", border: "1px solid var(--border)" }}
+      >
         {icon}
       </span>
       <div className="flex-1 min-w-0">
@@ -1056,10 +1291,10 @@ function SelectRow({
                 active
                   ? { background: "var(--gradient-cyan)", color: "var(--navy-deep)" }
                   : {
-                    background: "var(--foreground-5)",
-                    border: "1px solid var(--border)",
-                    color: "var(--foreground)",
-                  }
+                      background: "var(--foreground-5)",
+                      border: "1px solid var(--border)",
+                      color: "var(--foreground)",
+                    }
               }
             >
               {o.label}
@@ -1170,9 +1405,9 @@ function ConfirmDialog({
             style={
               danger
                 ? {
-                  background: "linear-gradient(135deg, oklch(0.62 0.22 25), oklch(0.55 0.22 18))",
-                  color: "white",
-                }
+                    background: "linear-gradient(135deg, oklch(0.62 0.22 25), oklch(0.55 0.22 18))",
+                    color: "white",
+                  }
                 : { background: "var(--gradient-cyan)", color: "var(--navy-deep)" }
             }
           >

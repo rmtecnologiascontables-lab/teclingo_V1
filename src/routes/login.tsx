@@ -59,12 +59,12 @@ function LoginPage() {
     onSuccess: async (tokenResponse) => {
       console.log("DEBUG: Google Success! Token received.");
       try {
-        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        const userInfo = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        }).then(res => res.json());
-        
-        const res = await loginGoogleReal(userInfo.email); 
-        
+        }).then((res) => res.json());
+
+        const res = await loginGoogleReal(userInfo.email);
+
         if ("error" in res && res.isNew) {
           setError(res.error);
           setTimeout(() => navigate({ to: "/register" }), 2000);
@@ -77,7 +77,7 @@ function LoginPage() {
         setError("Error al autenticar con Google");
       }
     },
-    onError: () => setError("El login con Google fue cancelado o falló")
+    onError: () => setError("El login con Google fue cancelado o falló"),
   });
 
   const guest = () => {
@@ -94,7 +94,7 @@ function LoginPage() {
           className="text-center mb-10"
         >
           <div className="w-16 h-16 bg-foreground/5 rounded-3xl mx-auto mb-4 flex items-center justify-center border border-border shadow-2xl">
-             <Globe className="w-8 h-8 text-cyan-400" />
+            <Globe className="w-8 h-8 text-cyan-400" />
           </div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/50 font-semibold">
             TecLingo · Institucional
@@ -123,7 +123,11 @@ function LoginPage() {
           />
 
           {error && (
-            <p className="text-[11px] text-red-300 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20" role="alert" aria-live="polite">
+            <p
+              className="text-[11px] text-red-300 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20"
+              role="alert"
+              aria-live="polite"
+            >
               {error}
             </p>
           )}
@@ -148,7 +152,11 @@ function LoginPage() {
           onClick={() => google()}
           className="w-full rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-3 glass-strong active:scale-[0.98] transition-all border border-border"
         >
-          <img src="https://www.google.com/favicon.ico" className="w-4 h-4 grayscale opacity-70" alt="" />
+          <img
+            src="https://www.google.com/favicon.ico"
+            className="w-4 h-4 grayscale opacity-70"
+            alt=""
+          />
           Acceder con Google
         </button>
 
@@ -164,7 +172,10 @@ function LoginPage() {
           </Link>
         </div>
 
-        <Link to="/" className="text-center text-[10px] text-foreground/30 mt-8 uppercase tracking-widest hover:text-foreground transition-colors">
+        <Link
+          to="/"
+          className="text-center text-[10px] text-foreground/30 mt-8 uppercase tracking-widest hover:text-foreground transition-colors"
+        >
           ← Volver al inicio
         </Link>
       </div>

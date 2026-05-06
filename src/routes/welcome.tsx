@@ -2,12 +2,7 @@ import { useEffect } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { PhoneFrame } from "@/components/PhoneFrame";
-import {
-  ArrowRight,
-  Sparkles,
-  ShieldCheck,
-  Globe,
-} from "lucide-react";
+import { ArrowRight, Sparkles, ShieldCheck, Globe } from "lucide-react";
 
 export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
@@ -26,18 +21,19 @@ function WelcomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate({ 
-      to: "/login", 
+    navigate({
+      to: "/login",
       search: { role: "student", demo: false },
-      replace: true 
+      replace: true,
     });
   }, [navigate]);
 
-  const goLogin = () => navigate({ 
-    to: "/login", 
-    search: { role: "student", demo: false } 
-  });
-  
+  const goLogin = () =>
+    navigate({
+      to: "/login",
+      search: { role: "student", demo: false },
+    });
+
   const goRegister = () => navigate({ to: "/register" });
 
   return (
@@ -79,7 +75,7 @@ function WelcomePage() {
               <span className="text-gradient">inglés técnico</span>
             </h1>
             <p className="text-sm text-white/60 max-w-[260px] mx-auto leading-relaxed">
-              Plataforma institucional con IA diseñada para la excelencia académica en el 
+              Plataforma institucional con IA diseñada para la excelencia académica en el
               <span className="text-white font-bold ml-1">CLE · ITSP</span>.
             </p>
           </motion.div>
@@ -123,12 +119,10 @@ function WelcomePage() {
             <ShieldCheck className="w-3.5 h-3.5" />
             Acceso Institucional Seguro
           </div>
-          
+
           <div className="w-12 h-1 bg-white/10 rounded-full" />
-          
-          <p className="text-[10px] text-white/30 font-medium">
-            Conceptos AI MX &copy; 2026
-          </p>
+
+          <p className="text-[10px] text-white/30 font-medium">Conceptos AI MX &copy; 2026</p>
         </motion.div>
       </motion.div>
     </PhoneFrame>

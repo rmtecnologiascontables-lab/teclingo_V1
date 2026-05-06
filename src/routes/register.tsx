@@ -2,13 +2,22 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { registerEmail, ensureSeed, getSession, type Role } from "@/lib/demo-store";
 import {
-  registerEmail,
-  ensureSeed,
-  getSession,
-  type Role,
-} from "@/lib/demo-store";
-import { Mail, Lock, User, GraduationCap, Briefcase, BookOpen, Globe, Building2, Key, Hash, Calendar, Book, Loader2 } from "lucide-react";
+  Mail,
+  Lock,
+  User,
+  GraduationCap,
+  Briefcase,
+  BookOpen,
+  Globe,
+  Building2,
+  Key,
+  Hash,
+  Calendar,
+  Book,
+  Loader2,
+} from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 
 export const Route = createFileRoute("/register")({
@@ -26,7 +35,7 @@ const CARRERAS = [
   "Ingeniería en Sistemas Computacionales",
   "Ingeniería Industrial",
   "Ingeniería Petrolera",
-  "Maestría en Ingeniería Administrativa"
+  "Maestría en Ingeniería Administrativa",
 ];
 
 const SEMESTRES = ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"];
@@ -58,15 +67,15 @@ function RegisterPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    
+
     setError("");
     if (pwd.length < 6) return setError("La contraseña debe tener al menos 6 caracteres");
     if (pwd !== pwd2) return setError("Las contraseñas no coinciden");
-    
+
     if (role !== "director" && !institutionCode.trim()) {
       return setError("Ingresa el código institucional (ITSP-XXXX)");
     }
-    
+
     if (role !== "director" && !institutionName.trim()) {
       return setError("Ingresa el nombre de la institución");
     }
@@ -76,17 +85,24 @@ function RegisterPage() {
       if (!semestre.trim()) return setError("Ingresa tu semestre");
       if (!numeroControl.trim()) return setError("Ingresa tu número de control");
     }
-    
+
     setIsLoading(true);
     try {
-      const res = await registerEmail(name || "Usuario", email, pwd, role, institutionCode.trim() || undefined, {
-        institutionName: institutionName.trim(),
-        carrera: carrera.trim(),
-        semestre: semestre.trim(),
-        numeroControl: numeroControl.trim(),
-        modalidad: modalidad,
-      });
-      
+      const res = await registerEmail(
+        name || "Usuario",
+        email,
+        pwd,
+        role,
+        institutionCode.trim() || undefined,
+        {
+          institutionName: institutionName.trim(),
+          carrera: carrera.trim(),
+          semestre: semestre.trim(),
+          numeroControl: numeroControl.trim(),
+          modalidad: modalidad,
+        },
+      );
+
       if ("error" in res) {
         setError(res.error);
         setIsLoading(false);
@@ -102,18 +118,20 @@ function RegisterPage() {
   const google = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        const userInfo = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        }).then(res => res.json());
-        
+        }).then((res) => res.json());
+
         setName(userInfo.name || "");
         setEmail(userInfo.email || "");
-        setError("¡Google enlazado! Completa tu contraseña y los datos faltantes para crear la cuenta.");
+        setError(
+          "¡Google enlazado! Completa tu contraseña y los datos faltantes para crear la cuenta.",
+        );
       } catch (err) {
         setError("Error al obtener datos de Google");
       }
     },
-    onError: () => setError("El registro con Google fue cancelado o falló")
+    onError: () => setError("El registro con Google fue cancelado o falló"),
   });
 
   return (
@@ -245,9 +263,13 @@ function RegisterPage() {
                   className="flex-1 bg-transparent outline-none text-sm text-white appearance-none"
                   required
                 >
-                  <option value="" disabled className="bg-slate-900">Selecciona tu Carrera</option>
-                  {CARRERAS.map(c => (
-                    <option key={c} value={c} className="bg-slate-900">{c}</option>
+                  <option value="" disabled className="bg-slate-900">
+                    Selecciona tu Carrera
+                  </option>
+                  {CARRERAS.map((c) => (
+                    <option key={c} value={c} className="bg-slate-900">
+                      {c}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -261,9 +283,13 @@ function RegisterPage() {
                   className="flex-1 bg-transparent outline-none text-sm text-white appearance-none"
                   required
                 >
-                  <option value="" disabled className="bg-slate-900">Selecciona tu Semestre</option>
-                  {SEMESTRES.map(s => (
-                    <option key={s} value={s} className="bg-slate-900">{s}</option>
+                  <option value="" disabled className="bg-slate-900">
+                    Selecciona tu Semestre
+                  </option>
+                  {SEMESTRES.map((s) => (
+                    <option key={s} value={s} className="bg-slate-900">
+                      {s}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -277,8 +303,10 @@ function RegisterPage() {
                   className="flex-1 bg-transparent outline-none text-sm text-white appearance-none"
                   required
                 >
-                  {MODALIDADES.map(m => (
-                    <option key={m} value={m} className="bg-slate-900">{m}</option>
+                  {MODALIDADES.map((m) => (
+                    <option key={m} value={m} className="bg-slate-900">
+                      {m}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -332,8 +360,8 @@ function RegisterPage() {
 
         <p className="text-center text-xs text-white/70 mt-5">
           ¿Ya tienes cuenta?{" "}
-          <Link 
-            to="/login" 
+          <Link
+            to="/login"
             search={{ role: "student", demo: false }}
             className="font-bold text-gradient underline-offset-2 hover:underline"
           >

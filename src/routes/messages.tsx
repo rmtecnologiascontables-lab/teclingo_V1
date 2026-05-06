@@ -5,13 +5,15 @@ import { PhoneFrame } from "@/components/PhoneFrame";
 import { useDemoSession } from "@/lib/use-demo-auth";
 import {
   getUsers,
-  getMessages,
-  conversationBetween,
-  sendMessage,
-  markConversationRead,
+  getMessages as getDemoMessages,
+  conversationBetween as demoConversationBetween,
+  sendMessage as demoSendMessage,
+  markConversationRead as demoMarkRead,
+  canMessage,
   type DemoUser,
   type Role,
 } from "@/lib/demo-store";
+import { gapi, type GSheetMessage, type GSheetUser } from "@/lib/google-sheets";
 import { ArrowLeft, Send, Search, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/messages")({
@@ -26,6 +28,39 @@ function MessagesPage() {
   const [filter, setFilter] = useState<"all" | Role>("all");
   const [query, setQuery] = useState("");
   const [tick, setTick] = useState(0);
+  const [gsMessages, setGsMessages] = useState<GSheetMessage[]>([]);
+  const [gsUsers, setGsUsers] = useState<GSheetUser[]>([]);
+  const [isGsConfigured, setIsGsConfigured] = useState(false);
+
+  const useGoogleSheets = gapi.isConfigured();
+
+  // Solo usar usuarios de Google Sheets (no demo)
+  const allUsers = useMemo(() => {
+    return gsUsers.map((u) => {
+      // Usar emoji según rol si no hay avatar_url
+      let avatar = "👤";
+      if (u.role === "director") avatar = "👔";
+      else if (u.role === "teacher") avatar = "👨‍🏫";
+      else if (u.role === "student") avatar = "🧑‍🎓";
+
+      // Si tiene avatar_url válido, usarlo como imagen
+      const hasValidAvatar = u.avatar_url && u.avatar_url.startsWith("http");
+
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role as Role,
+        avatar,
+        avatar_url: hasValidAvatar ? u.avatar_url : undefined,
+        provider: "email" as const,
+        createdAt: new Date(u.created_at || Date.now()).getTime(),
+        app_code: u.app_code,
+        institutionName: u.institutionName,
+        group_id: u.group_id,
+      };
+    });
+  }, [gsUsers]);
 
   // Re-render on store change
   useEffect(() => {
@@ -43,8 +78,83 @@ function MessagesPage() {
     }
   }, [session, navigate]);
 
-  const users = useMemo(() => getUsers(), [tick]);
-  const messages = useMemo(() => getMessages(), [tick]);
+  // Cargar usuarios GS una sola vez
+  useEffect(() => {
+    if (!useGoogleSheets) {
+      setIsGsConfigured(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadUsers() {
+      try {
+        const users = await gapi.getUsers();
+        if (!isMounted) return;
+
+        setGsUsers(users);
+
+        if (session) {
+          const gsUser = users.find((u) => u.email === session.email);
+          if (gsUser?.id) {
+            const msgs = await gapi.getMessagesByUser(gsUser.id);
+            if (!isMounted) return;
+            setGsMessages(msgs);
+          }
+        }
+
+        setIsGsConfigured(true);
+      } catch (e) {
+        console.error("GS load error:", e);
+        if (isMounted) setIsGsConfigured(false);
+      }
+    }
+
+    loadUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session, useGoogleSheets]);
+
+  // Función para recargar mensajes
+  const refreshGsMessages = async () => {
+    if (!useGoogleSheets || !session) return;
+    const gsUser = gsUsers.find((u) => u.email === session.email);
+    if (gsUser?.id) {
+      const msgs = await gapi.getMessagesByUser(gsUser.id);
+      setGsMessages(msgs);
+    }
+  };
+
+  const currentUserGsId = useMemo(() => {
+    if (!gsUsers.length || !session) return null;
+    const gsUser = gsUsers.find((u) => u.email === session.email);
+    return gsUser?.id || null;
+  }, [gsUsers, session]);
+
+  const users = allUsers;
+  const messages = useMemo(() => {
+    // Solo usar mensajes de Google Sheets
+    return gsMessages.map((m) => ({
+      id: m.id,
+      fromId: m.fromId,
+      toId: m.toId,
+      text: m.text,
+      createdAt: new Date(m.createdAt).getTime(),
+      readBy: m.readBy ? m.readBy.split(",") : [],
+    }));
+  }, [gsMessages]);
+
+  const conversationBetween = (userId1: string, userId2: string) => {
+    return messages
+      .filter(
+        (m) =>
+          (m.fromId === userId1 && m.toId === userId2) ||
+          (m.fromId === userId2 && m.toId === userId1),
+      )
+      .sort((a, b) => a.createdAt - b.createdAt);
+  };
 
   if (!session) {
     return (
@@ -60,6 +170,9 @@ function MessagesPage() {
     .filter((u) => u.id !== session.id)
     .filter((u) => (filter === "all" ? true : u.role === filter))
     .filter((u) => (query ? u.name.toLowerCase().includes(query.toLowerCase()) : true));
+
+  // Mostrar todos los usuarios en la lista (permisos se verifican al enviar)
+  const visibleContacts = others;
 
   const active = activeId ? (users.find((u) => u.id === activeId) ?? null) : null;
 
@@ -143,62 +256,87 @@ function MessagesPage() {
 
               {/* User list */}
               <div className="px-5 mt-3 space-y-1.5 pb-6 flex-1">
-                {others.length === 0 && (
+                {visibleContacts.length === 0 ? (
                   <div className="glass rounded-2xl p-6 text-center text-white/55 text-xs">
                     <MessageSquare className="w-5 h-5 mx-auto mb-2 opacity-60" />
                     Sin contactos en este filtro.
                   </div>
-                )}
-                {others.map((u) => {
-                  const conv = conversationBetween(session.id, u.id);
-                  const last = conv[conv.length - 1];
-                  const unread = messages.filter(
-                    (m) =>
-                      m.fromId === u.id && m.toId === session.id && !m.readBy.includes(session.id),
-                  ).length;
-                  return (
-                    <button
-                      key={u.id}
-                      onClick={() => {
-                        setActiveId(u.id);
-                        markConversationRead(session.id, u.id);
-                      }}
-                      className="w-full glass-strong rounded-2xl p-3 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
-                        style={{ background: "oklch(1 0 0 / 0.08)" }}
+                ) : (
+                  visibleContacts.map((u) => {
+                    const conv = conversationBetween(session.id, u.id);
+                    const last = conv[conv.length - 1];
+                    const unread = messages.filter(
+                      (m) =>
+                        m.fromId === u.id &&
+                        m.toId === session.id &&
+                        !m.readBy.includes(session.id),
+                    ).length;
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => {
+                          setActiveId(u.id);
+                        }}
+                        className="w-full glass-strong rounded-2xl p-3 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
                       >
-                        {u.avatar ?? "👤"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-bold text-white truncate">{u.name}</p>
-                          <span className="text-[9px] uppercase tracking-widest text-white/40">
-                            {roleShort(u.role)}
-                          </span>
+                        {u.avatar_url ? (
+                          <img
+                            src={u.avatar_url}
+                            alt={u.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
+                            style={{ background: "oklch(1 0 0 / 0.08)" }}
+                          >
+                            {u.avatar}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-bold text-white truncate">{u.name}</p>
+                            <span className="text-[9px] uppercase tracking-widest text-white/40">
+                              {roleShort(u.role)}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-white/55 truncate">
+                            {last
+                              ? (last.fromId === session.id ? "Tú: " : "") + last.text
+                              : "Sin mensajes aún"}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-white/55 truncate">
-                          {last
-                            ? (last.fromId === session.id ? "Tú: " : "") + last.text
-                            : "Sin mensajes aún"}
-                        </p>
-                      </div>
-                      {unread > 0 && (
-                        <span
-                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{ background: "var(--gradient-cyan)", color: "var(--navy-deep)" }}
-                        >
-                          {unread}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        {unread > 0 && (
+                          <span
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                            style={{
+                              background: "var(--gradient-cyan)",
+                              color: "var(--navy-deep)",
+                            }}
+                          >
+                            {unread}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </motion.div>
           ) : (
-            <Chat key="chat" me={session} other={active} onSent={() => setTick((t) => t + 1)} />
+            <Chat
+              key="chat"
+              me={session}
+              other={active}
+              messages={messages}
+              onSent={() => {
+                if (gapi.isConfigured() && isGsConfigured) {
+                  refreshGsMessages();
+                } else {
+                  setTick((t) => t + 1);
+                }
+              }}
+            />
           )}
         </AnimatePresence>
       </div>
@@ -210,9 +348,20 @@ function roleShort(r: Role) {
   return r === "director" ? "DIR" : r === "teacher" ? "DOC" : "ALU";
 }
 
-function Chat({ me, other, onSent }: { me: DemoUser; other: DemoUser; onSent: () => void }) {
+function Chat({
+  me,
+  other,
+  messages,
+  onSent,
+}: {
+  me: DemoUser;
+  other: DemoUser;
+  messages: any[];
+  onSent: () => void;
+}) {
   const [text, setText] = useState("");
   const [tick, setTick] = useState(0);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -221,18 +370,45 @@ function Chat({ me, other, onSent }: { me: DemoUser; other: DemoUser; onSent: ()
     return () => window.removeEventListener("demo-store-change", h);
   }, []);
 
-  const conv = useMemo(() => conversationBetween(me.id, other.id), [me.id, other.id, tick]);
+  const conv = useMemo(() => {
+    return messages
+      .filter(
+        (m) =>
+          (m.fromId === me.id && m.toId === other.id) ||
+          (m.fromId === other.id && m.toId === me.id),
+      )
+      .sort((a, b) => a.createdAt - b.createdAt);
+  }, [me.id, other.id, tick, messages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [conv.length]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    sendMessage(me.id, other.id, text);
-    setText("");
-    onSent();
+    if (!text.trim() || sending) return;
+
+    const messageText = text.trim();
+    setSending(true);
+
+    try {
+      if (gapi.isConfigured()) {
+        await gapi.createMessage({
+          fromId: me.id,
+          toId: other.id,
+          text: messageText,
+        });
+        onSent();
+      } else {
+        demoSendMessage(me.id, other.id, messageText);
+      }
+      setText("");
+    } catch (err) {
+      console.error("Error saving to GS:", err);
+      alert("Error al guardar mensaje");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -282,15 +458,20 @@ function Chat({ me, other, onSent }: { me: DemoUser; other: DemoUser; onSent: ()
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Escribe un mensaje…"
-          className="flex-1 glass rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:ring-1 focus:ring-white/30"
+          disabled={sending}
+          className="flex-1 glass rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:ring-1 focus:ring-white/30 disabled:opacity-50"
         />
         <button
           type="submit"
-          disabled={!text.trim()}
+          disabled={!text.trim() || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
           style={{ background: "var(--gradient-cyan)", color: "var(--navy-deep)" }}
         >
-          <Send className="w-4 h-4" />
+          {sending ? (
+            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </button>
       </form>
     </motion.div>

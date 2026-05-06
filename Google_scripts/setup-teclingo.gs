@@ -12,7 +12,7 @@ function setupDatabase() {
     "id", "name", "email", "role", "app_code", 
     "institutionName", "carrera", "semestre", "numeroControl", 
     "password", "avatar_url", "fecha_ingreso", "modalidad", 
-    "phone", "domicilio", "created_at"
+    "phone", "domicilio", "created_at", "group_id"
   ], "#cfe2f3");
 
   // --- 2. 📚 MAESTRO DE ITEMS ---
@@ -44,7 +44,18 @@ function setupDatabase() {
     "timestamp", "user_id", "action", "details"
   ], "#f4cccc");
 
-  // --- 5. 🧹 LIMPIEZA DE HOJAS REDUNDANTES ---
+  // --- 5. 📂 GRUPOS ---
+  setupSheet(ss, "Grupos", [
+    "id", "name", "modulo", "teacher_id", "director_id",
+    "anio_escolar", "capacidad", "horario", "status", "created_at"
+  ], "#e8d4e8");
+
+  // --- 6. 💬 MENSAJES ---
+  setupSheet(ss, "Mensajes", [
+    "id", "fromId", "toId", "text", "createdAt", "readBy"
+  ], "#d4e5f7");
+
+  // --- 7. 🧹 LIMPIEZA DE HOJAS REDUNDANTES ---
   const redundantSheets = ["Alumnos", "Docentes", "Director"];
   redundantSheets.forEach(name => {
     const sheet = ss.getSheetByName(name);

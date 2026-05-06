@@ -24,6 +24,7 @@ export interface DemoUser {
   domicilio?: string;
   status?: string;
   last_category_id?: string;
+  group_id?: string;
 }
 
 export interface DemoMessage {
@@ -42,6 +43,46 @@ const K_PASSWORDS = "demo.passwords";
 const K_INSTITUTION_COUNTER = "demo.institution.counter";
 const K_INSTITUTIONS = "demo.institutions";
 const K_USER_APP_CODE_COUNTER = "demo.user.app_code.counter";
+const K_GROUPS = "demo.groups";
+
+const SEED_GROUPS: DemoGroup[] = [
+  {
+    id: "grp-001",
+    name: "Grupo 1 - Inglés A1",
+    modulo: 1,
+    teacher_id: "u-tea-1",
+    director_id: "u-dir-1",
+    anio_escolar: "2025-2026",
+    capacidad: 25,
+    horario: "Lun-Mié 8:00-10:00",
+    status: "ACTIVO",
+    createdAt: Date.now() - 86400000,
+  },
+  {
+    id: "grp-002",
+    name: "Grupo 2 - Inglés A1",
+    modulo: 1,
+    teacher_id: "u-tea-2",
+    director_id: "u-dir-1",
+    anio_escolar: "2025-2026",
+    capacidad: 25,
+    horario: "Mar-Jue 10:00-12:00",
+    status: "ACTIVO",
+    createdAt: Date.now() - 86400000,
+  },
+  {
+    id: "grp-003",
+    name: "Grupo 1 - Inglés A2",
+    modulo: 2,
+    teacher_id: "u-tea-1",
+    director_id: "u-dir-1",
+    anio_escolar: "2025-2026",
+    capacidad: 20,
+    horario: "Lun-Mié 10:00-12:00",
+    status: "ACTIVO",
+    createdAt: Date.now() - 86400000,
+  },
+];
 
 const SEED_USERS: DemoUser[] = [
   {
@@ -79,6 +120,7 @@ const SEED_USERS: DemoUser[] = [
     avatar: "🧑‍🎓",
     provider: "email",
     createdAt: Date.now() - 6e6,
+    group_id: "grp-001",
   },
   {
     id: "u-stu-2",
@@ -88,6 +130,7 @@ const SEED_USERS: DemoUser[] = [
     avatar: "👩‍🎓",
     provider: "email",
     createdAt: Date.now() - 5e6,
+    group_id: "grp-001",
   },
   {
     id: "u-stu-3",
@@ -97,6 +140,7 @@ const SEED_USERS: DemoUser[] = [
     avatar: "👦",
     provider: "email",
     createdAt: Date.now() - 4e6,
+    group_id: "grp-002",
   },
 ];
 
@@ -176,6 +220,7 @@ export function ensureSeed() {
   if (!window.localStorage.getItem(K_USERS)) write(K_USERS, SEED_USERS);
   if (!window.localStorage.getItem(K_PASSWORDS)) write(K_PASSWORDS, SEED_PWD);
   if (!window.localStorage.getItem(K_MESSAGES)) write(K_MESSAGES, SEED_MESSAGES());
+  if (!window.localStorage.getItem(K_GROUPS)) write(K_GROUPS, SEED_GROUPS);
 }
 
 export function resetDemo() {
@@ -184,6 +229,7 @@ export function resetDemo() {
   window.localStorage.removeItem(K_PASSWORDS);
   window.localStorage.removeItem(K_MESSAGES);
   window.localStorage.removeItem(K_SESSION);
+  window.localStorage.removeItem(K_GROUPS);
   ensureSeed();
 }
 
@@ -215,13 +261,16 @@ export function setSession(user: DemoUser | null) {
 }
 
 // ---- Auth helpers ----
-export async function loginEmail(email: string, password: string): Promise<DemoUser | { error: string }> {
+export async function loginEmail(
+  email: string,
+  password: string,
+): Promise<DemoUser | { error: string }> {
   const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
   if (scriptUrl) {
     try {
       const response = await fetch(scriptUrl, {
         method: "POST",
-        body: JSON.stringify({ action: "getUsers" })
+        body: JSON.stringify({ action: "getUsers" }),
       });
       const data = await response.json();
       if (data.success) {
@@ -246,23 +295,30 @@ export async function loginEmail(email: string, password: string): Promise<DemoU
   return u;
 }
 
-export async function loginGoogleReal(email: string): Promise<DemoUser | { error: string, isNew: boolean }> {
+export async function loginGoogleReal(
+  email: string,
+): Promise<DemoUser | { error: string; isNew: boolean }> {
   const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
   if (scriptUrl) {
     try {
       const response = await fetch(scriptUrl, {
         method: "POST",
-        body: JSON.stringify({ action: "getUsers" })
+        body: JSON.stringify({ action: "getUsers" }),
       });
       const data = await response.json();
       if (data.success) {
         const users = data.data;
-        const u = users.find((x: any) => String(x.email).toLowerCase().trim() === String(email).toLowerCase().trim());
-        
+        const u = users.find(
+          (x: any) => String(x.email).toLowerCase().trim() === String(email).toLowerCase().trim(),
+        );
+
         if (!u) {
-          return { error: "Tu cuenta de Google no está registrada. Por favor regístrate primero.", isNew: true };
+          return {
+            error: "Tu cuenta de Google no está registrada. Por favor regístrate primero.",
+            isNew: true,
+          };
         }
-        
+
         setSession(u);
         return u as DemoUser;
       } else {
@@ -272,10 +328,12 @@ export async function loginGoogleReal(email: string): Promise<DemoUser | { error
       console.error("Fetch error:", err);
     }
   }
-  
+
   ensureSeed();
   const users = getUsers();
-  const u = users.find((x) => String(x.email).toLowerCase().trim() === String(email).toLowerCase().trim());
+  const u = users.find(
+    (x) => String(x.email).toLowerCase().trim() === String(email).toLowerCase().trim(),
+  );
   if (!u) return { error: "Usuario no registrado. Por favor regístrate primero.", isNew: true };
   setSession(u);
   return u;
@@ -296,10 +354,10 @@ export async function registerEmail(
     modalidad?: string;
     phone?: string;
     domicilio?: string;
-  }
+  },
 ): Promise<DemoUser | { error: string }> {
   const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
-  
+
   if (scriptUrl) {
     // Si es director y no hay código, generamos uno único
     let finalAppCode = institutionCode || "";
@@ -328,8 +386,8 @@ export async function registerEmail(
         method: "POST",
         body: JSON.stringify({
           action: "createUser",
-          user: backendUser
-        })
+          user: backendUser,
+        }),
       });
       const data = await response.json();
       if (data.success) {
@@ -359,7 +417,14 @@ export async function registerEmail(
   let institution_id: string | undefined;
 
   if (role === "director") {
-    const newInst = createInstitution({ id: "", name, email, role, provider: "email", createdAt: Date.now() });
+    const newInst = createInstitution({
+      id: "",
+      name,
+      email,
+      role,
+      provider: "email",
+      createdAt: Date.now(),
+    });
     app_code = newInst.app_code;
     institution_id = newInst.id;
   } else if (institutionCode) {
@@ -391,21 +456,26 @@ export async function registerEmail(
     numeroControl: extraFields?.numeroControl,
   };
 
-
   setUsers([...users, u]);
   setPasswords({ ...getPasswords(), [email]: password });
   setSession(u);
   return u;
 }
 
-export function loginGoogleStub(role: Role, isLogin = false): DemoUser | { error: string, isNew: boolean } {
+export function loginGoogleStub(
+  role: Role,
+  isLogin = false,
+): DemoUser | { error: string; isNew: boolean } {
   ensureSeed();
   const users = getUsers();
   const email = `google.${role}@gmail.com`;
   let u = users.find((x) => x.email === email);
   if (!u) {
     if (isLogin) {
-      return { error: "Usuario no registrado. Debes registrarte con el código de tu institución.", isNew: true };
+      return {
+        error: "Usuario no registrado. Debes registrarte con el código de tu institución.",
+        isNew: true,
+      };
     }
     u = {
       id: `u-g-${Math.random().toString(36).slice(2, 7)}`,
@@ -443,7 +513,45 @@ export function logout() {
 }
 
 // ---- Messaging ----
+
+export function canMessage(fromId: string, toId: string): boolean {
+  const from = getUsers().find((u) => u.id === fromId);
+  const to = getUsers().find((u) => u.id === toId);
+  if (!from || !to) return false;
+
+  // Director puede messaging a todos
+  if (from.role === "director") return true;
+
+  // Teacher: puede messaging a director y a sus estudiantes
+  if (from.role === "teacher") {
+    if (to.role === "director") return true;
+    if (to.role === "student") {
+      const teacherGroups = getGroupsByTeacher(from.id);
+      const fromGroupIds = teacherGroups.map((g) => g.id);
+      return fromGroupIds.includes(to.group_id || "");
+    }
+    return false;
+  }
+
+  // Student: solo puede messaging a su teacher y director
+  if (from.role === "student") {
+    if (to.role === "director") return true;
+    if (to.role === "teacher") {
+      const fromUser = getUsers().find((u) => u.id === fromId);
+      const group = getGroups().find((g) => g.id === fromUser?.group_id);
+      return group?.teacher_id === toId;
+    }
+    return false;
+  }
+
+  return false;
+}
+
 export function sendMessage(fromId: string, toId: string, text: string): DemoMessage {
+  if (!canMessage(fromId, toId)) {
+    throw new Error("No tienes permiso para messaging a este usuario");
+  }
+
   const msg: DemoMessage = {
     id: `m-${Math.random().toString(36).slice(2, 9)}`,
     fromId,
@@ -481,6 +589,67 @@ export interface Institution {
   name: string;
   director_id: string;
   createdAt: number;
+}
+
+export interface DemoGroup {
+  id: string;
+  name: string;
+  modulo: number;
+  teacher_id: string;
+  director_id: string;
+  anio_escolar: string;
+  capacidad: number;
+  horario: string;
+  status: "ACTIVO" | "INACTIVO";
+  createdAt: number;
+}
+
+function getGroupsList(): DemoGroup[] {
+  return read<DemoGroup[]>(K_GROUPS, []);
+}
+
+function setGroupsList(groups: DemoGroup[]) {
+  write(K_GROUPS, groups);
+}
+
+export function getGroups(): DemoGroup[] {
+  return getGroupsList();
+}
+
+export function getGroupsByTeacher(teacherId: string): DemoGroup[] {
+  return getGroupsList().filter((g) => g.teacher_id === teacherId);
+}
+
+export function getGroupsByStudent(studentId: string): DemoGroup[] {
+  const student = getUsers().find((u) => u.id === studentId);
+  if (!student?.group_id) return [];
+  return getGroupsList().filter((g) => g.id === student.group_id);
+}
+
+export function assignStudentToGroup(studentId: string, groupId: string): void {
+  const users = getUsers().map((u) => (u.id === studentId ? { ...u, group_id: groupId } : u));
+  setUsers(users);
+}
+
+export function createGroup(group: Omit<DemoGroup, "id" | "createdAt">): DemoGroup {
+  const newGroup: DemoGroup = {
+    ...group,
+    id: `grp-${Math.random().toString(36).slice(2, 9)}`,
+    createdAt: Date.now(),
+    status: group.status || "ACTIVO",
+  };
+  setGroupsList([...getGroupsList(), newGroup]);
+  return newGroup;
+}
+
+export function updateGroup(id: string, updates: Partial<DemoGroup>): DemoGroup | null {
+  const groups = getGroupsList().map((g) => (g.id === id ? { ...g, ...updates } : g));
+  setGroupsList(groups);
+  return groups.find((g) => g.id === id) || null;
+}
+
+export function deleteGroup(id: string): void {
+  setGroupsList(getGroupsList().filter((g) => g.id !== id));
 }
 
 function getInstitutionCounter(): number {
@@ -526,7 +695,6 @@ export function getInstitutionByDirector(directorId: string): Institution | null
   return getInstitutions().find((i) => i.director_id === directorId) || null;
 }
 
-
 // ---- Google Sheets Persistence ----
 
 export async function getInstitutionData(app_code: string) {
@@ -535,7 +703,7 @@ export async function getInstitutionData(app_code: string) {
   try {
     const response = await fetch(scriptUrl, {
       method: "POST",
-      body: JSON.stringify({ action: "getInstitution", app_code })
+      body: JSON.stringify({ action: "getInstitution", app_code }),
     });
     const data = await response.json();
     return data.success ? data.data : null;
@@ -551,7 +719,7 @@ export async function updateInstitutionData(app_code: string, updates: any) {
   try {
     const response = await fetch(scriptUrl, {
       method: "POST",
-      body: JSON.stringify({ action: "updateInstitution", app_code, updates })
+      body: JSON.stringify({ action: "updateInstitution", app_code, updates }),
     });
     const data = await response.json();
     return data;
@@ -566,16 +734,16 @@ export async function updateUserData(userId: string, updates: any) {
   try {
     const response = await fetch(scriptUrl, {
       method: "POST",
-      body: JSON.stringify({ action: "updateUser", id: userId, updates })
+      body: JSON.stringify({ action: "updateUser", id: userId, updates }),
     });
     const data = await response.json();
-    
+
     // Sincronizar sesión local si es el usuario actual
     const session = getSession();
     if (session && session.id === userId && data.success) {
       setSession({ ...session, ...updates });
     }
-    
+
     return data;
   } catch (err) {
     return { success: false, error: "Connection error" };
@@ -588,7 +756,7 @@ export async function getItemsData(category?: string) {
   try {
     const response = await fetch(scriptUrl, {
       method: "POST",
-      body: JSON.stringify({ action: "getItems", category })
+      body: JSON.stringify({ action: "getItems", category }),
     });
     const data = await response.json();
     return data.success ? data.data : [];
@@ -597,13 +765,17 @@ export async function getItemsData(category?: string) {
   }
 }
 
-export async function saveStatsData(stats: { user_id: string, metric: string, value: string | number }) {
+export async function saveStatsData(stats: {
+  user_id: string;
+  metric: string;
+  value: string | number;
+}) {
   const scriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
   if (!scriptUrl) return { success: false };
   try {
     const response = await fetch(scriptUrl, {
       method: "POST",
-      body: JSON.stringify({ action: "saveStats", stats })
+      body: JSON.stringify({ action: "saveStats", stats }),
     });
     const data = await response.json();
     return data;

@@ -1,5 +1,15 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, BookOpen, Sparkles, Settings, User, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Home,
+  BookOpen,
+  Sparkles,
+  Settings,
+  User,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -47,7 +57,9 @@ export function BottomNav() {
             className="pointer-events-auto flex items-center gap-2 glass-strong rounded-full px-4 py-2 absolute bottom-6"
           >
             <ActiveIcon className="w-4 h-4 text-foreground" />
-            <span className="text-[11px] font-bold text-foreground tracking-wide">{activeItem.label}</span>
+            <span className="text-[11px] font-bold text-foreground tracking-wide">
+              {activeItem.label}
+            </span>
             <span className="text-[10px] text-foreground/50 ml-1">· open</span>
           </motion.button>
         ) : (
