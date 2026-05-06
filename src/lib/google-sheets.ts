@@ -3,7 +3,7 @@
 
 const APPS_SCRIPT_URL =
   import.meta.env.VITE_APPS_SCRIPT_URL ||
-  "https://script.google.com/macros/s/AKfycbzpkHAOsNlF2DfuSMVxDEuE6nAixndw-DhrqBpRlgng-alpGJcK0_N_w8cxgUJXFOqI/exec";
+  "https://script.google.com/macros/s/AKfycbzMalcgobIMdMFXQFMMQooROkT4v2TKjB8zPA5CsY_XrAmxnQ6m-tz-mHhwc4D6u6DT/exec";
 
 export interface GSheetUser {
   id: string;
